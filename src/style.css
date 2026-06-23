@@ -539,7 +539,7 @@ canvas {
 /* --- Score --- */
 #score-display {
   position: absolute;
-  top: 24px; left: 24px;
+  top: 185px; left: 20px;
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 2px;

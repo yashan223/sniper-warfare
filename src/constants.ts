@@ -120,31 +120,31 @@ export const MAP = {
   SIZE: 120, // total map size (units)
   GROUND_Y: 0,
   BUILDING_COLORS: {
-    WALL: 0x8B7D6B,
-    WALL_DARK: 0x6B5D4B,
-    FLOOR: 0x7A6B5A,
-    ROOF: 0x5A4B3A,
-    CONCRETE: 0x9B9B8B,
-    SAND: 0xC4A882,
-    SANDBAG: 0x8B7355,
-    METAL: 0x4A4A4A,
-    VEHICLE_BODY: 0x3D4A3D,
-    VEHICLE_RUST: 0x6B4423,
+    WALL: 0x2c3038, // cool dark grey
+    WALL_DARK: 0x191c20, // charcoal
+    FLOOR: 0x23272e, // concrete
+    ROOF: 0x0e1014, // deep black-grey
+    CONCRETE: 0x3a3f4a, // slate grey
+    SAND: 0x15161c, // dark asphalt ground
+    SANDBAG: 0x2a3324, // dark tactical green
+    METAL: 0x1f232b, // graphite metal
+    VEHICLE_BODY: 0x242e3b, // dark navy-grey
+    VEHICLE_RUST: 0x422f25, // dark muted rust
   },
   BOUNDARY_HEIGHT: 8,
 } as const;
 
 // --- Rendering ---
 export const RENDER = {
-  FOG_COLOR: 0xC4A875,
+  FOG_COLOR: 0x0c0f17, // deep dark navy-black fog
   FOG_NEAR: 30,
   FOG_FAR: 150,
-  AMBIENT_LIGHT_COLOR: 0xFFE4B5,
-  AMBIENT_LIGHT_INTENSITY: 0.5,
-  SUN_COLOR: 0xFFF5E0,
-  SUN_INTENSITY: 1.8,
+  AMBIENT_LIGHT_COLOR: 0x5b6882, // cool moonlight ambient light
+  AMBIENT_LIGHT_INTENSITY: 0.35, // moody low light
+  SUN_COLOR: 0x8aa5cc, // pale blue moonlight
+  SUN_INTENSITY: 0.7, // soft moonlight shadow caster
   SHADOW_MAP_SIZE: 2048,
-  SKY_COLOR: 0xC4A875,
+  SKY_COLOR: 0x0c0f17, // match fog color for night sky
 } as const;
 
 // --- Game States ---

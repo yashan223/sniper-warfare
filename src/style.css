@@ -14,18 +14,18 @@
   --font-primary: 'Rajdhani', sans-serif;
   --font-display: 'Orbitron', sans-serif;
 
-  --hud-green: #44ff44;
-  --hud-amber: #ffaa44;
-  --hud-red: #ff4444;
-  --hud-blue: #44aaff;
+  --hud-green: #00f0ff; /* tactical cyan */
+  --hud-amber: #00a8ff; /* electric blue */
+  --hud-red: #ff3b30; /* crimson red */
+  --hud-blue: #33b5e5;
   --hud-white: rgba(255, 255, 255, 0.9);
-  --hud-bg: rgba(0, 0, 0, 0.4);
-  --hud-border: rgba(255, 255, 255, 0.15);
+  --hud-bg: rgba(5, 7, 12, 0.75); /* darker blackish background */
+  --hud-border: rgba(0, 240, 255, 0.15); /* cyan border */
 
-  --accent: #ff6b35;
-  --accent-glow: rgba(255, 107, 53, 0.5);
-  --dark: #0a0a0a;
-  --dark-glass: rgba(10, 10, 10, 0.85);
+  --accent: #00f0ff; /* cyan accent */
+  --accent-glow: rgba(0, 240, 255, 0.4);
+  --dark: #05070c;
+  --dark-glass: rgba(5, 7, 12, 0.9);
 }
 
 html, body {
@@ -72,8 +72,8 @@ canvas {
       0deg,
       transparent,
       transparent 2px,
-      rgba(255, 107, 53, 0.03) 2px,
-      rgba(255, 107, 53, 0.03) 4px
+      rgba(0, 240, 255, 0.03) 2px,
+      rgba(0, 240, 255, 0.03) 4px
     );
   pointer-events: none;
 }
@@ -102,7 +102,7 @@ canvas {
   font-weight: 900;
   letter-spacing: 8px;
   color: white;
-  text-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(255, 107, 53, 0.2);
+  text-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(0, 240, 255, 0.15);
   line-height: 1;
 }
 
@@ -432,7 +432,7 @@ canvas {
 
 #breath-bar-fill {
   width: 100%; height: 100%;
-  background: linear-gradient(90deg, #ffcc44, #ff8800);
+  background: linear-gradient(90deg, #00a8ff, #0055aa);
   border-radius: 2px;
   transition: width 0.1s ease;
 }

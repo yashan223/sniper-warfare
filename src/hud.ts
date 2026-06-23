@@ -91,11 +91,11 @@ export class HUD {
     this.healthTextEl.textContent = String(Math.ceil(hp));
 
     if (pct > 60) {
-      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #44ff44, #22cc22)';
+      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #00f0ff, #0088cc)';
     } else if (pct > 30) {
-      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #ffaa44, #ff8800)';
+      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #33b5e5, #005588)';
     } else {
-      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #ff4444, #cc0000)';
+      this.healthBarFillEl.style.background = 'linear-gradient(90deg, #ff3b30, #aa0000)';
     }
 
     // Full screen damage vignette when low hp
@@ -336,9 +336,9 @@ export class HUD {
     ctx.shadowBlur = 0;
 
     // 4. Draw player pointer at the center (always pointing straight UP)
-    ctx.fillStyle = '#44ff44';
+    ctx.fillStyle = '#00f0ff';
     ctx.shadowBlur = 8;
-    ctx.shadowColor = '#44ff44';
+    ctx.shadowColor = '#00f0ff';
     ctx.beginPath();
     ctx.moveTo(centerX, centerY - 6);
     ctx.lineTo(centerX - 5, centerY + 5);
@@ -351,8 +351,8 @@ export class HUD {
     const sweepTime = (Date.now() / 2000) % 1;
     const sweepAngle = sweepTime * Math.PI * 2;
     const grad = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, radius);
-    grad.addColorStop(0, 'rgba(68, 255, 68, 0.05)');
-    grad.addColorStop(1, 'rgba(68, 255, 68, 0.0)');
+    grad.addColorStop(0, 'rgba(0, 240, 255, 0.05)');
+    grad.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
     
     ctx.fillStyle = grad;
     ctx.beginPath();
@@ -381,7 +381,7 @@ export class HUD {
       const dx = centerX + Math.sin(rotatedAngle) * compassOffset;
       const dy = centerY - Math.cos(rotatedAngle) * compassOffset;
       
-      ctx.fillStyle = dir.text === 'N' ? '#ffaa44' : 'rgba(255, 255, 255, 0.5)';
+      ctx.fillStyle = dir.text === 'N' ? '#00f0ff' : 'rgba(255, 255, 255, 0.5)';
       ctx.fillText(dir.text, dx, dy);
     });
   }

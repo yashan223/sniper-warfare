@@ -7,12 +7,34 @@ export class AudioManager {
   private masterGain: GainNode | null = null;
   private ambientSource: AudioBufferSourceNode | null = null;
   private heartbeatInterval: number | null = null;
+  private fireBuffer: AudioBuffer | null = null;
 
   init(): void {
     this.ctx = new AudioContext();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.6;
     this.masterGain.connect(this.ctx.destination);
+
+    // Preload custom gun fire sound asynchronously
+    this.loadSound('/gun-sound/fire.mp3').then(buffer => {
+      this.fireBuffer = buffer;
+      console.log('fire.mp3 loaded and decoded successfully');
+    }).catch(err => {
+      console.warn('Failed to load/decode fire.mp3, falling back to procedural sounds:', err);
+    });
+  }
+
+  private async loadSound(url: string): Promise<AudioBuffer | null> {
+    if (!this.ctx) return null;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      return await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      console.error(`Error loading sound from ${url}:`, err);
+      return null;
+    }
   }
 
   private ensureCtx(): AudioContext {
@@ -28,6 +50,14 @@ export class AudioManager {
   playSniper(): void {
     const ctx = this.ensureCtx();
     const now = ctx.currentTime;
+
+    if (this.fireBuffer) {
+      const source = ctx.createBufferSource();
+      source.buffer = this.fireBuffer;
+      source.connect(this.gain);
+      source.start(now);
+      return;
+    }
 
     // Sharp transient (noise burst)
     const noiseLen = 0.08;

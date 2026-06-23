@@ -482,79 +482,79 @@ export class SniperRifle {
   private addProceduralHandsGLTF(scene: THREE.Object3D): void {
     // Sleeve material (tactical dark grey/blue fabric)
     const sleeveMat = new THREE.MeshStandardMaterial({
-      color: 0x2e3138,
-      roughness: 0.85,
+      color: 0x4a4d52,
+      roughness: 0.9,
       metalness: 0.05,
     });
 
     // Glove material (dark black tactical leather gloves)
     const gloveMat = new THREE.MeshStandardMaterial({
-      color: 0x141416,
-      roughness: 0.6,
-      metalness: 0.15,
+      color: 0x1f1f22,
+      roughness: 0.8,
+      metalness: 0.1,
     });
 
     // Skin/Wrist connector (black/dark grey wristband)
     const wristMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1c20,
+      color: 0x242428,
       roughness: 0.9,
       metalness: 0.1,
     });
 
     // --- RIGHT HAND & ARM (Holding stock / grip) ---
     // Right Hand Glove
-    const rightHandGeo = new THREE.BoxGeometry(0.25, 0.25, 0.4);
+    const rightHandGeo = new THREE.BoxGeometry(0.18, 0.16, 0.28);
     const rightHand = new THREE.Mesh(rightHandGeo, gloveMat);
     rightHand.castShadow = true;
     rightHand.receiveShadow = true;
     // Positioned near trigger / pistol grip in unscaled local coordinates
-    rightHand.position.set(0.3, -0.15, 0.05);
+    rightHand.position.set(0.38, -0.18, 0.08);
     rightHand.rotation.set(-0.2, 0.4, -0.1);
     scene.add(rightHand);
 
     // Right Wrist cuff
-    const rightWristGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8);
+    const rightWristGeo = new THREE.CylinderGeometry(0.10, 0.10, 0.08, 8);
     const rightWrist = new THREE.Mesh(rightWristGeo, wristMat);
     rightWrist.castShadow = true;
-    rightWrist.position.set(0.45, -0.25, 0.15);
+    rightWrist.position.set(0.52, -0.28, 0.18);
     rightWrist.rotation.set(Math.PI / 4, 0, Math.PI / 6);
     scene.add(rightWrist);
 
     // Right Arm Sleeve
-    const rightArmGeo = new THREE.CylinderGeometry(0.22, 0.26, 2.0, 8);
+    const rightArmGeo = new THREE.CylinderGeometry(0.13, 0.16, 2.2, 8);
     const rightArm = new THREE.Mesh(rightArmGeo, sleeveMat);
     rightArm.castShadow = true;
     rightArm.receiveShadow = true;
-    rightArm.position.set(0.7, -0.5, 0.35);
-    rightArm.rotation.set(0.9, 0, 0.4);
+    rightArm.position.set(0.85, -0.62, 0.42);
+    rightArm.rotation.set(1.0, 0, 0.5);
     scene.add(rightArm);
 
     // --- LEFT HAND & ARM (Supporting under the barrel) ---
     // Left Hand Glove
-    const leftHandGeo = new THREE.BoxGeometry(0.25, 0.22, 0.4);
+    const leftHandGeo = new THREE.BoxGeometry(0.18, 0.15, 0.28);
     const leftHand = new THREE.Mesh(leftHandGeo, gloveMat);
     leftHand.castShadow = true;
     leftHand.receiveShadow = true;
     // Positioned forward under handguard in unscaled local coordinates
-    leftHand.position.set(-0.6, -0.1, -0.05);
+    leftHand.position.set(-0.68, -0.12, -0.08);
     leftHand.rotation.set(0.1, -0.2, -0.4);
     scene.add(leftHand);
 
     // Left Wrist cuff
-    const leftWristGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8);
+    const leftWristGeo = new THREE.CylinderGeometry(0.10, 0.10, 0.08, 8);
     const leftWrist = new THREE.Mesh(leftWristGeo, wristMat);
     leftWrist.castShadow = true;
-    leftWrist.position.set(-0.45, -0.2, -0.15);
+    leftWrist.position.set(-0.54, -0.22, -0.16);
     leftWrist.rotation.set(Math.PI / 4, 0, -Math.PI / 6);
     scene.add(leftWrist);
 
     // Left Arm Sleeve
-    const leftArmGeo = new THREE.CylinderGeometry(0.22, 0.26, 2.0, 8);
+    const leftArmGeo = new THREE.CylinderGeometry(0.13, 0.16, 2.2, 8);
     const leftArm = new THREE.Mesh(leftArmGeo, sleeveMat);
     leftArm.castShadow = true;
     leftArm.receiveShadow = true;
-    leftArm.position.set(-0.2, -0.45, -0.3);
-    leftArm.rotation.set(0.8, 0, -0.4);
+    leftArm.position.set(-0.25, -0.58, -0.32);
+    leftArm.rotation.set(0.9, 0, -0.5);
     scene.add(leftArm);
   }
 

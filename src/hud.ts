@@ -1,7 +1,4 @@
-// ============================================================
-// HUD — All in-game UI elements managed via DOM
-// ============================================================
-
+import * as THREE from 'three';
 import { PLAYER, WEAPON } from './constants';
 
 interface KillFeedEntry {
@@ -27,15 +24,20 @@ export class HUD {
   private reloadingEl!: HTMLElement;
   private boltActionEl!: HTMLElement;
   private breathBarEl!: HTMLElement;
+  private minimapCanvas!: HTMLCanvasElement;
+  private minimapCtx!: CanvasRenderingContext2D;
 
   // State
   private killFeed: KillFeedEntry[] = [];
   private hitMarkerTimer = 0;
+  private staticObstacles: { x: number; z: number; w: number; h: number; type: string }[] = [];
 
   init(): void {
     this.crosshairEl = document.getElementById('crosshair')!;
     this.ammoCurrentEl = document.getElementById('ammo-current')!;
     this.ammoReserveEl = document.getElementById('ammo-reserve')!;
+    this.minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
+    this.minimapCtx = this.minimapCanvas.getContext('2d')!;
     this.healthBarFillEl = document.getElementById('health-bar-fill')!;
     this.healthTextEl = document.getElementById('health-text')!;
     this.staminaBarEl = document.getElementById('stamina-bar-fill')!;
@@ -228,5 +230,159 @@ export class HUD {
     if (el) {
       el.textContent = `Kills: ${kills} | Headshots: ${headshots}`;
     }
+  }
+
+  // --- Minimap rendering ---
+  initMinimap(obstaclesGroup: THREE.Group): void {
+    this.staticObstacles = [];
+    
+    obstaclesGroup.children.forEach(child => {
+      child.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(child);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      this.staticObstacles.push({
+        x: center.x,
+        z: center.z,
+        w: size.x,
+        h: size.z,
+        type: child.name || 'obstacle'
+      });
+    });
+    console.log(`Minimap initialized with ${this.staticObstacles.length} static obstacles.`);
+  }
+
+  updateMinimap(playerPosition: THREE.Vector3, playerYaw: number, enemies: any[]): void {
+    if (!this.minimapCanvas || !this.minimapCtx) return;
+
+    const ctx = this.minimapCtx;
+    const width = this.minimapCanvas.width;
+    const height = this.minimapCanvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = width / 2;
+
+    // Clear background
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw circular clipping mask
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Map scale: map is 120x120 units. Show around 45 units view range on the 150px canvas
+    const scale = 3.2;
+
+    // Apply rotation and translation so that the minimap rotates with the player
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(-playerYaw);
+    ctx.translate(-playerPosition.x * scale, -playerPosition.z * scale);
+
+    // 1. Draw grid / map boundaries
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+    const gridSize = 15;
+    for (let x = -60; x <= 60; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x * scale, -60 * scale);
+      ctx.lineTo(x * scale, 60 * scale);
+      ctx.stroke();
+    }
+    for (let z = -60; z <= 60; z += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(-60 * scale, z * scale);
+      ctx.lineTo(60 * scale, z * scale);
+      ctx.stroke();
+    }
+
+    // 2. Draw static obstacles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1.5;
+
+    this.staticObstacles.forEach(obs => {
+      const rx = (obs.x - obs.w / 2) * scale;
+      const rz = (obs.z - obs.h / 2) * scale;
+      const rw = obs.w * scale;
+      const rh = obs.h * scale;
+
+      ctx.fillRect(rx, rz, rw, rh);
+      ctx.strokeRect(rx, rz, rw, rh);
+    });
+
+    // 3. Draw active/alive enemies as red dots
+    ctx.fillStyle = '#ff3333';
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = '#ff3333';
+    
+    enemies.forEach(enemy => {
+      if (enemy.state && enemy.state !== 'DEAD') {
+        const ex = enemy.group.position.x * scale;
+        const ez = enemy.group.position.z * scale;
+        
+        ctx.beginPath();
+        ctx.arc(ex, ez, 4.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    // Restore map transform context
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    // 4. Draw player pointer at the center (always pointing straight UP)
+    ctx.fillStyle = '#44ff44';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#44ff44';
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - 6);
+    ctx.lineTo(centerX - 5, centerY + 5);
+    ctx.lineTo(centerX + 5, centerY + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 5. Draw radar sweep glow
+    const sweepTime = (Date.now() / 2000) % 1;
+    const sweepAngle = sweepTime * Math.PI * 2;
+    const grad = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, radius);
+    grad.addColorStop(0, 'rgba(68, 255, 68, 0.05)');
+    grad.addColorStop(1, 'rgba(68, 255, 68, 0.0)');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 2, sweepAngle - 0.2, sweepAngle);
+    ctx.lineTo(centerX, centerY);
+    ctx.closePath();
+    ctx.fill();
+
+    // 6. Draw compass markers
+    ctx.restore(); // Restore outer circular clip
+
+    ctx.font = '700 9px "Orbitron", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const compassOffset = radius - 10;
+    const directions = [
+      { text: 'N', angle: 0 },
+      { text: 'E', angle: Math.PI / 2 },
+      { text: 'S', angle: Math.PI },
+      { text: 'W', angle: -Math.PI / 2 }
+    ];
+
+    directions.forEach(dir => {
+      const rotatedAngle = dir.angle - playerYaw;
+      const dx = centerX + Math.sin(rotatedAngle) * compassOffset;
+      const dy = centerY - Math.cos(rotatedAngle) * compassOffset;
+      
+      ctx.fillStyle = dir.text === 'N' ? '#ffaa44' : 'rgba(255, 255, 255, 0.5)';
+      ctx.fillText(dir.text, dx, dy);
+    });
   }
 }

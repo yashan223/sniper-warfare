@@ -174,6 +174,7 @@ class Game {
 
     // HUD
     this.hud.init();
+    this.hud.initMinimap(this.map.getObstacles());
     this.hud.updateAmmo(this.weapon.ammoInMag, this.weapon.ammoReserve);
     this.hud.updateHealth(this.player.health);
     this.hud.updateStamina(this.player.stamina, PLAYER.SPRINT_DURATION);
@@ -457,6 +458,7 @@ class Game {
     this.hud.updateStance(this.player.stance);
     this.hud.updateCrosshair(this.player.isMoving, this.weapon.isADS);
     this.hud.updateScore(this.enemies.kills, this.enemies.headshots);
+    this.hud.updateMinimap(this.player.position, this.player.getYaw(), this.enemies.getEnemies());
 
     // Check death
     if (this.player.isDead) {

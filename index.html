@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Web-based FPS sniper shooter with Call of Duty 4 style movement mechanics" />
+  <title>SNIPER OPS — CoD4 Style FPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- ======================== MAIN MENU ======================== -->
+    <div id="main-menu" class="overlay-screen">
+      <div class="menu-bg-pattern"></div>
+      <div class="menu-content">
+        <div class="title-group">
+          <div class="title-sub">TACTICAL</div>
+          <h1 class="game-title">SNIPER<span class="title-accent">OPS</span></h1>
+          <div class="title-line"></div>
+          <div class="title-tagline">PRECISION IS EVERYTHING</div>
+        </div>
+        <div class="start-prompt pulse">
+          <div class="start-icon">⊕</div>
+          <div>CLICK ANYWHERE TO DEPLOY</div>
+        </div>
+        <div class="controls-info">
+          <div class="controls-grid">
+            <div class="control-item"><kbd>W A S D</kbd><span>Move</span></div>
+            <div class="control-item"><kbd>SHIFT</kbd><span>Sprint</span></div>
+            <div class="control-item"><kbd>C</kbd><span>Crouch</span></div>
+            <div class="control-item"><kbd>Z</kbd><span>Prone</span></div>
+            <div class="control-item"><kbd>SPACE</kbd><span>Jump</span></div>
+            <div class="control-item"><kbd>RMB</kbd><span>Scope</span></div>
+            <div class="control-item"><kbd>LMB</kbd><span>Fire</span></div>
+            <div class="control-item"><kbd>R</kbd><span>Reload</span></div>
+            <div class="control-item"><kbd>SHIFT</kbd><span>Hold Breath (ADS)</span></div>
+            <div class="control-item"><kbd>ESC</kbd><span>Pause</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== HUD ======================== -->
+    <div id="hud" style="display: none;">
+      <!-- Crosshair -->
+      <div id="crosshair">
+        <div class="crosshair-line top"></div>
+        <div class="crosshair-line bottom"></div>
+        <div class="crosshair-line left"></div>
+        <div class="crosshair-line right"></div>
+        <div class="crosshair-dot"></div>
+      </div>
+
+      <!-- Scope overlay -->
+      <div id="scope-overlay" style="display: none;">
+        <div class="scope-vignette"></div>
+        <div class="scope-crosshair-h"></div>
+        <div class="scope-crosshair-v"></div>
+        <div class="scope-mil-dot top-dot"></div>
+        <div class="scope-mil-dot bottom-dot-1"></div>
+        <div class="scope-mil-dot bottom-dot-2"></div>
+        <div class="scope-mil-dot bottom-dot-3"></div>
+        <div class="scope-range">100m</div>
+      </div>
+
+      <!-- Health (bottom left) -->
+      <div id="health-container" class="hud-panel">
+        <div class="hud-label">HEALTH</div>
+        <div id="health-bar">
+          <div id="health-bar-fill"></div>
+        </div>
+        <div id="health-text">100</div>
+      </div>
+
+      <!-- Ammo (bottom right) -->
+      <div id="ammo-container" class="hud-panel">
+        <div class="hud-label">AMMO</div>
+        <div class="ammo-display">
+          <span id="ammo-current" class="ammo-current">5</span>
+          <span class="ammo-sep">/</span>
+          <span id="ammo-reserve" class="ammo-reserve">20</span>
+        </div>
+      </div>
+
+      <!-- Stamina bar -->
+      <div id="stamina-container">
+        <div id="stamina-bar">
+          <div id="stamina-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Breath bar (ADS hold breath) -->
+      <div id="breath-container" style="display: none;">
+        <div id="breath-bar">
+          <div id="breath-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Kill feed (top right) -->
+      <div id="kill-feed"></div>
+
+      <!-- Hit marker -->
+      <div id="hit-marker" style="display: none;">
+        <div class="hit-line tl"></div>
+        <div class="hit-line tr"></div>
+        <div class="hit-line bl"></div>
+        <div class="hit-line br"></div>
+      </div>
+
+      <!-- Damage overlay -->
+      <div id="damage-overlay"></div>
+
+      <!-- Damage direction indicator -->
+      <div id="damage-direction" style="display: none;">
+        <div class="damage-arc"></div>
+      </div>
+
+      <!-- Stance icon -->
+      <div id="stance-icon">🧍</div>
+
+      <!-- Score -->
+      <div id="score-display">Kills: 0 | Headshots: 0</div>
+
+      <!-- Reloading indicator -->
+      <div id="reloading-indicator" style="display: none;">
+        <div class="reload-spinner"></div>
+        RELOADING
+      </div>
+
+      <!-- Bolt action indicator -->
+      <div id="bolt-action-indicator" style="display: none;">
+        ● CYCLING
+      </div>
+
+      <!-- Victory text -->
+      <div id="victory-text" style="display: none;">
+        AREA CLEARED
+      </div>
+
+      <!-- Enemy count -->
+      <div id="enemy-count"></div>
+    </div>
+
+    <!-- ======================== PAUSE MENU ======================== -->
+    <div id="pause-menu" class="overlay-screen" style="display: none;">
+      <div class="pause-content">
+        <h2 class="pause-title">PAUSED</h2>
+        <div class="pause-buttons">
+          <button id="resume-btn" class="menu-btn">RESUME</button>
+          <div class="sensitivity-control">
+            <label for="sensitivity-slider">Mouse Sensitivity</label>
+            <input type="range" id="sensitivity-slider" min="0.5" max="5" step="0.1" value="2" />
+          </div>
+          <button id="restart-btn" class="menu-btn secondary">RESTART</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== GAME OVER ======================== -->
+    <div id="game-over" class="overlay-screen" style="display: none;">
+      <div class="gameover-content">
+        <h2 class="gameover-title">KIA</h2>
+        <div class="gameover-subtitle">KILLED IN ACTION</div>
+        <div id="final-stats" class="final-stats">Kills: 0 | Headshots: 0</div>
+        <button id="restart-btn-go" class="menu-btn">REDEPLOY</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

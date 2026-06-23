@@ -38,14 +38,19 @@ class Game {
   private animationId = 0;
   private spawnProtectionTimer = 0;
   private pendingState: GameState | null = null;
+  private shakeIntensity = 0; // camera shake
+  private victoryTimer = -1; // countdown before showing victory screen
+  private totalEnemies = 0; // total enemy count for HUD
 
   // DOM
   private menuEl!: HTMLElement;
   private pauseEl!: HTMLElement;
   private gameOverEl!: HTMLElement;
+  private victoryEl!: HTMLElement;
   private gameContainer!: HTMLElement;
 
   private loadedWeaponGLTF: any = null;
+  private loadedPlayerModelGLTF: any = null;
 
   private loadedAssets: LoadedAssets = {
     buildings: new Map(),
@@ -88,6 +93,8 @@ class Game {
       { type: 'fence', name: 'fence-low.glb', path: '/map-assets/fence-low.glb' },
       // Weapons
       { type: 'weapon', name: 'awp.glb', path: '/gun-assets/awp.glb' },
+      // Player Model
+      { type: 'playerModel', name: 'robot-3332.glb', path: '/player-assets/robot-3332.glb' },
     ];
 
     let loadedCount = 0;
@@ -108,6 +115,8 @@ class Game {
               this.loadedAssets.fences.set(asset.name, gltf.scene);
             } else if (asset.type === 'weapon') {
               this.loadedWeaponGLTF = gltf;
+            } else if (asset.type === 'playerModel') {
+              this.loadedPlayerModelGLTF = gltf;
             }
             loadedCount++;
             const pctEl = document.getElementById('load-pct');
@@ -157,7 +166,7 @@ class Game {
     this.scene = new THREE.Scene();
 
     // Player
-    this.player = new Player(this.camera);
+    this.player = new Player(this.camera, this.loadedPlayerModelGLTF);
     this.scene.add(this.player.getObject());
 
     // Weapon
@@ -171,6 +180,7 @@ class Game {
     // Enemies
     this.enemies = new EnemyManager();
     this.enemies.spawnEnemies(spawnPoints, this.scene);
+    this.totalEnemies = this.enemies.getEnemies().length;
 
     // HUD
     this.hud.init();
@@ -184,6 +194,7 @@ class Game {
     this.menuEl = document.getElementById('main-menu')!;
     this.pauseEl = document.getElementById('pause-menu')!;
     this.gameOverEl = document.getElementById('game-over')!;
+    this.victoryEl = document.getElementById('victory-screen')!;
 
     // Events
     this.setupEvents();
@@ -292,6 +303,9 @@ class Game {
     document.getElementById('restart-btn-go')?.addEventListener('click', () => {
       this.restartGame();
     });
+    document.getElementById('restart-btn-victory')?.addEventListener('click', () => {
+      this.restartGame();
+    });
 
     // Sensitivity slider
     const sensSlider = document.getElementById('sensitivity-slider') as HTMLInputElement;
@@ -353,6 +367,8 @@ class Game {
     this.map = new GameMap();
     const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
     this.enemies.spawnEnemies(spawnPoints, this.scene);
+    this.totalEnemies = this.enemies.getEnemies().length;
+    this.victoryTimer = -1;
 
     // Reset HUD
     this.hud.updateAmmo(this.weapon.ammoInMag, this.weapon.ammoReserve);
@@ -373,6 +389,7 @@ class Game {
     this.menuEl.style.display = state === GameState.MENU ? 'flex' : 'none';
     this.pauseEl.style.display = state === GameState.PAUSED ? 'flex' : 'none';
     this.gameOverEl.style.display = state === GameState.GAME_OVER ? 'flex' : 'none';
+    this.victoryEl.style.display = state === GameState.VICTORY ? 'flex' : 'none';
 
     const hudEl = document.getElementById('hud')!;
     hudEl.style.display = state === GameState.PLAYING ? 'block' : 'none';
@@ -441,6 +458,9 @@ class Game {
         this.hud.showDamageDirection(angle);
         this.audio.playDamage();
 
+        // Camera shake on hit
+        this.shakeIntensity = 0.018;
+
         if (this.player.health < 25) {
           this.audio.startHeartbeat();
         } else {
@@ -459,6 +479,18 @@ class Game {
     this.hud.updateCrosshair(this.player.isMoving, this.weapon.isADS);
     this.hud.updateScore(this.enemies.kills, this.enemies.headshots);
     this.hud.updateMinimap(this.player.position, this.player.getYaw(), this.enemies.getEnemies());
+    this.hud.updateEnemyCount(this.enemies.getAliveCount(), this.totalEnemies);
+
+    // Camera shake
+    if (this.shakeIntensity > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * this.shakeIntensity;
+      this.camera.position.y += (Math.random() - 0.5) * this.shakeIntensity;
+      this.shakeIntensity *= 0.82; // decay
+      if (this.shakeIntensity < 0.0005) {
+        this.shakeIntensity = 0;
+        this.camera.position.set(0, 0, 0); // reset local position
+      }
+    }
 
     // Check death
     if (this.player.isDead) {
@@ -473,11 +505,23 @@ class Game {
       }
     }
 
-    // Check all enemies dead
-    if (this.enemies.getAliveCount() === 0) {
-      const victoryEl = document.getElementById('victory-text');
-      if (victoryEl) {
-        victoryEl.style.display = 'block';
+    // Check all enemies dead — show VICTORY after 3 second delay
+    if (this.enemies.getAliveCount() === 0 && this.state === GameState.PLAYING) {
+      if (this.victoryTimer < 0) {
+        this.victoryTimer = 3.0; // start 3s countdown
+      } else {
+        this.victoryTimer -= delta;
+        if (this.victoryTimer <= 0) {
+          this.victoryTimer = -1;
+          this.setState(GameState.VICTORY);
+          document.exitPointerLock();
+          this.audio.stopHeartbeat();
+
+          const vStatsEl = document.getElementById('victory-stats');
+          if (vStatsEl) {
+            vStatsEl.textContent = `Kills: ${this.enemies.kills} | Headshots: ${this.enemies.headshots}`;
+          }
+        }
       }
     }
 

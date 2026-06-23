@@ -143,12 +143,7 @@ export class GameMap {
         const scaleZ = size.z > 0 ? b.d / size.z : 1;
         instance.scale.set(scaleX, scaleY, scaleZ);
 
-        instance.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+        this.adaptModelToNight(instance);
 
         this.group.add(instance);
         this.obstacleGroup.add(instance.clone());
@@ -262,12 +257,7 @@ export class GameMap {
         const scaleZ = size.z > 0 ? 0.5 / size.z : 1;
         instance.scale.set(scaleX, scaleY, scaleZ);
 
-        instance.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+        this.adaptModelToNight(instance);
         this.group.add(instance);
         physics.addMeshCollider(instance);
       } else {
@@ -307,12 +297,7 @@ export class GameMap {
         const scaleZ = size.z > 0 ? 0.6 / size.z : 1;
         instance.scale.set(scaleX, scaleY, scaleZ);
 
-        instance.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+        this.adaptModelToNight(instance);
         this.group.add(instance);
         physics.addMeshCollider(instance);
       } else {
@@ -349,12 +334,7 @@ export class GameMap {
         instance.scale.set(scale, scale, scale);
         instance.rotation.y = Math.random() * Math.PI * 2;
 
-        instance.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+        this.adaptModelToNight(instance);
         this.group.add(instance);
         physics.addMeshCollider(instance);
       }
@@ -478,8 +458,9 @@ export class GameMap {
 
   // --- Lighting ---
   private buildLighting(scene: THREE.Scene): void {
-    // Ambient — higher intensity to compensate for simpler materials
-    const ambient = new THREE.AmbientLight(RENDER.AMBIENT_LIGHT_COLOR, 0.7);
+    // Ambient light using RENDER constants
+    const ambient = new THREE.AmbientLight(RENDER.AMBIENT_LIGHT_COLOR, RENDER.AMBIENT_LIGHT_INTENSITY);
+    ambient.layers.enable(1);
     scene.add(ambient);
 
     // Sun (directional) — smaller shadow frustum for better quality + perf
@@ -495,11 +476,25 @@ export class GameMap {
     sun.shadow.camera.top = 60;
     sun.shadow.camera.bottom = -60;
     sun.shadow.bias = -0.002;
+    
+    // Enable layer 1 on directional light and its shadow camera
+    sun.layers.enable(1);
+    sun.shadow.camera.layers.enable(1);
     scene.add(sun);
 
-    // Hemisphere light for natural fill
-    const hemi = new THREE.HemisphereLight(0xFFEECC, 0x8B7355, 0.4);
+    // Hemisphere light for natural fill (dim cool blue sky to dark ground bounce)
+    const hemi = new THREE.HemisphereLight(0x5b6882, 0x15161c, 0.05);
+    hemi.layers.enable(1);
     scene.add(hemi);
+  }
+
+  private adaptModelToNight(model: THREE.Object3D): void {
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
   }
 
   // --- Animate dust (simplified — just drift, no per-particle sin()) ---

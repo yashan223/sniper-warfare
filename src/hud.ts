@@ -26,6 +26,7 @@ export class HUD {
   private breathBarEl!: HTMLElement;
   private minimapCanvas!: HTMLCanvasElement;
   private minimapCtx!: CanvasRenderingContext2D;
+  private enemyCountEl!: HTMLElement;
 
   // State
   private killFeed: KillFeedEntry[] = [];
@@ -50,6 +51,7 @@ export class HUD {
     this.reloadingEl = document.getElementById('reloading-indicator')!;
     this.boltActionEl = document.getElementById('bolt-action-indicator')!;
     this.breathBarEl = document.getElementById('breath-bar-fill')!;
+    this.enemyCountEl = document.getElementById('enemy-count')!;
   }
 
   // --- Crosshair ---
@@ -222,6 +224,14 @@ export class HUD {
     if (this.killFeed.length !== before) {
       this.renderKillFeed();
     }
+  }
+
+  // --- Enemy count ---
+  updateEnemyCount(alive: number, total: number): void {
+    if (!this.enemyCountEl) return;
+    const icon = alive > 0 ? '⚠' : '✓';
+    this.enemyCountEl.textContent = `${icon} ${alive} / ${total} TARGETS`;
+    this.enemyCountEl.style.color = alive === 0 ? '#00ff88' : alive <= 3 ? '#ffaa00' : '#ff4444';
   }
 
   // --- Score / kill count ---

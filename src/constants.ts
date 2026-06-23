@@ -120,31 +120,31 @@ export const MAP = {
   SIZE: 120, // total map size (units)
   GROUND_Y: 0,
   BUILDING_COLORS: {
-    WALL: 0x2c3038, // cool dark grey
-    WALL_DARK: 0x191c20, // charcoal
-    FLOOR: 0x23272e, // concrete
-    ROOF: 0x0e1014, // deep black-grey
-    CONCRETE: 0x3a3f4a, // slate grey
-    SAND: 0x15161c, // dark asphalt ground
-    SANDBAG: 0x2a3324, // dark tactical green
-    METAL: 0x1f232b, // graphite metal
-    VEHICLE_BODY: 0x242e3b, // dark navy-grey
-    VEHICLE_RUST: 0x422f25, // dark muted rust
+    WALL: 0xdfd8cf, // warm stucco
+    WALL_DARK: 0xbfae9f, // darker warm stucco
+    FLOOR: 0x9098a0, // grey concrete floor
+    ROOF: 0x4a4f56, // dark concrete roof
+    CONCRETE: 0x8a929c, // slate grey concrete sills
+    SAND: 0xd6c5a3, // warm desert sand ground
+    SANDBAG: 0xa89b7d, // khaki sandbags
+    METAL: 0x5a626a, // steel/iron
+    VEHICLE_BODY: 0x6e3630, // faded terracotta red vehicle body
+    VEHICLE_RUST: 0x7c4e33, // vehicle rust
   },
   BOUNDARY_HEIGHT: 8,
 } as const;
 
 // --- Rendering ---
 export const RENDER = {
-  FOG_COLOR: 0x0c0f17, // deep dark navy-black fog
-  FOG_NEAR: 30,
-  FOG_FAR: 150,
-  AMBIENT_LIGHT_COLOR: 0x5b6882, // cool moonlight ambient light
-  AMBIENT_LIGHT_INTENSITY: 0.35, // moody low light
-  SUN_COLOR: 0x8aa5cc, // pale blue moonlight
-  SUN_INTENSITY: 0.7, // soft moonlight shadow caster
+  FOG_COLOR: 0xd5e3f2, // bright sky/horizon fog
+  FOG_NEAR: 40,
+  FOG_FAR: 180,
+  AMBIENT_LIGHT_COLOR: 0xddeeff, // cool blue sky fill light
+  AMBIENT_LIGHT_INTENSITY: 0.65, // bright ambient shadow fill
+  SUN_COLOR: 0xfffae6, // warm bright sunlight
+  SUN_INTENSITY: 1.35, // strong direct light caster
   SHADOW_MAP_SIZE: 2048,
-  SKY_COLOR: 0x0c0f17, // match fog color for night sky
+  SKY_COLOR: 0x85b5e3, // bright daytime sky blue
 } as const;
 
 // --- Game States ---
@@ -153,6 +153,7 @@ export const GameState = {
   PLAYING: 'PLAYING',
   PAUSED: 'PAUSED',
   GAME_OVER: 'GAME_OVER',
+  VICTORY: 'VICTORY',
 } as const;
 export type GameState = typeof GameState[keyof typeof GameState];
 

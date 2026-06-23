@@ -30,6 +30,12 @@ export class SniperRifle {
   breathRemaining: number = WEAPON.HOLD_BREATH_DURATION;
   private breathRegenTimer = 0;
 
+  // Weapon lag (tracks mouse delta for inertia effect)
+  private weaponLagX = 0;
+  private weaponLagY = 0;
+  private lastMouseDX = 0;
+  private lastMouseDY = 0;
+
   // Recoil
   private recoilPitch = 0;
   private recoilRecovery = 0;
@@ -59,6 +65,12 @@ export class SniperRifle {
     } else {
       this.buildWeaponModel();
     }
+
+    // Track mouse movement for weapon lag
+    document.addEventListener('mousemove', (e) => {
+      this.lastMouseDX = e.movementX;
+      this.lastMouseDY = e.movementY;
+    });
   }
 
   getWeaponGroup(): THREE.Group {
@@ -388,10 +400,30 @@ export class SniperRifle {
     // Sprint weapon position (lower the weapon)
     // handled externally via isSprinting check
 
-    // Scope — always steady (no sway)
+    // Scope — sway when ADS
     if (this.isADS) {
-      this.camera.rotation.z = 0;
+      // Build sway multiplier
+      let swayMult = WEAPON.SCOPE_SWAY_AMOUNT;
+      if (this.holdingBreath) swayMult *= WEAPON.HOLD_BREATH_SWAY_MULTIPLIER;
+      if (stance === 'PRONE') swayMult *= WEAPON.PRONE_SWAY_MULTIPLIER;
+
+      // Advance sway time only while ADS
+      this.swayTime += delta * WEAPON.SCOPE_SWAY_SPEED;
+
+      // Figure-8 sway: sin(t) on X, sin(2t) on Y
+      const swayX = Math.sin(this.swayTime) * swayMult;
+      const swayY = Math.sin(this.swayTime * 2) * swayMult * 0.5;
+      this.camera.rotation.z = swayX;
+      this.camera.rotation.x += swayY * 0.02; // very subtle vertical drift
     } else {
+      // Hip fire — subtle weapon lag based on mouse movement
+      this.weaponLagX += (this.lastMouseDX * 0.0003 - this.weaponLagX) * Math.min(1, delta * 8);
+      this.weaponLagY += (this.lastMouseDY * 0.0003 - this.weaponLagY) * Math.min(1, delta * 8);
+      this.lastMouseDX = 0;
+      this.lastMouseDY = 0;
+
+      this.weaponGroup.rotation.y = -this.weaponLagX * 1.5;
+      this.weaponGroup.rotation.x = this.weaponLagY * 0.8;
       this.camera.rotation.z = 0;
       this.swayTime = 0;
     }

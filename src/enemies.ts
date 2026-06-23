@@ -22,6 +22,12 @@ export interface EnemyData {
   name: string;
   rotation: number;
   deathTimer: number;
+  // Burst-fire suppression
+  burstCount: number;
+  burstTimer: number;
+  // Strafe direction (+1 or -1)
+  strafeDir: number;
+  strafeSwitchTimer: number;
 }
 
 export class EnemyManager {
@@ -147,6 +153,10 @@ export class EnemyManager {
       name,
       rotation: 0,
       deathTimer: 0,
+      burstCount: 0,
+      burstTimer: 0,
+      strafeDir: Math.random() > 0.5 ? 1 : -1,
+      strafeSwitchTimer: 2 + Math.random() * 2,
     };
   }
 
@@ -179,9 +189,10 @@ export class EnemyManager {
       this.kills++;
       if (isHeadshot) this.headshots++;
     } else {
-      // Alert the enemy
+      // Alert the enemy immediately and alert nearby allies
       enemy.state = EnemyState.COMBAT;
       enemy.reactionTimer = 0;
+      this.alertNearby(enemy.position, 30);
     }
 
     return { killed, headshot: isHeadshot, name: enemy.name };
@@ -194,6 +205,22 @@ export class EnemyManager {
 
     // Death animation: tip over
     // Will be animated in update
+  }
+
+  // --- Alert nearby allies ---
+  private alertNearby(origin: THREE.Vector3, radius: number): void {
+    const radiusSq = radius * radius;
+    for (const other of this.enemies) {
+      if (other.state === EnemyState.DEAD || other.state === EnemyState.COMBAT) continue;
+      const dx = other.position.x - origin.x;
+      const dz = other.position.z - origin.z;
+      if (dx * dx + dz * dz < radiusSq) {
+        other.state = EnemyState.ALERT;
+        other.alertTimer = ENEMY.ALERT_DURATION;
+        // Stagger their reaction times so they don't all fire at once
+        other.reactionTimer = ENEMY.REACTION_TIME * (0.5 + Math.random() * 1.5);
+      }
+    }
   }
 
   // --- Update all enemies ---
@@ -257,6 +284,8 @@ export class EnemyManager {
             enemy.state = EnemyState.ALERT;
             enemy.alertTimer = ENEMY.ALERT_DURATION;
             enemy.reactionTimer = ENEMY.REACTION_TIME;
+            // Propagate alert to nearby allies within 25 units
+            this.alertNearby(enemy.position, 25);
           }
           break;
 
@@ -267,6 +296,8 @@ export class EnemyManager {
 
           if (enemy.reactionTimer <= 0) {
             enemy.state = EnemyState.COMBAT;
+            enemy.burstCount = 0;
+            enemy.burstTimer = 0;
           }
 
           if (!canSeePlayer) {
@@ -281,22 +312,38 @@ export class EnemyManager {
           // Face player
           enemy.rotation = Math.atan2(this._dirToPlayer.x, this._dirToPlayer.z) + Math.PI;
 
-          // Fire at player
-          enemy.fireTimer -= delta;
-          if (enemy.fireTimer <= 0 && canSeePlayer) {
-            enemy.fireTimer = 1 / ENEMY.FIRE_RATE;
-            this.fireAtPlayer(enemy, playerPos, distToPlayer, audio, onPlayerHit);
+          // --- Burst-fire suppression ---
+          enemy.burstTimer -= delta;
+          if (enemy.burstTimer <= 0 && canSeePlayer) {
+            if (enemy.burstCount > 0) {
+              // Firing a burst shot
+              enemy.burstTimer = 0.12; // time between shots in burst
+              enemy.burstCount--;
+              this.fireAtPlayer(enemy, playerPos, distToPlayer, audio, onPlayerHit);
+            } else {
+              // Start new burst (3 shots) after a cooldown
+              const cooldown = 1.2 + Math.random() * 1.0;
+              enemy.burstTimer = cooldown;
+              enemy.burstCount = 2 + Math.floor(Math.random() * 2); // 2-3 shot burst
+            }
           }
 
-          // Strafe/reposition occasionally
-          if (Math.random() < delta * 0.3) {
-            const strafeDir = new THREE.Vector3(
-              (Math.random() - 0.5) * 2,
-              0,
-              (Math.random() - 0.5) * 2
-            ).normalize();
-            enemy.position.add(strafeDir.multiplyScalar(ENEMY.COMBAT_SPEED * delta));
+          // --- Tactical strafing (perpendicular to player direction) ---
+          enemy.strafeSwitchTimer -= delta;
+          if (enemy.strafeSwitchTimer <= 0) {
+            enemy.strafeDir *= -1;
+            enemy.strafeSwitchTimer = 1.5 + Math.random() * 2.0;
           }
+
+          // Strafe perpendicular to dir-to-player
+          const perpX = -this._dirToPlayer.z * enemy.strafeDir;
+          const perpZ = this._dirToPlayer.x * enemy.strafeDir;
+          const newPosX = enemy.position.x + perpX * ENEMY.COMBAT_SPEED * delta;
+          const newPosZ = enemy.position.z + perpZ * ENEMY.COMBAT_SPEED * delta;
+
+          // Clamp within map bounds
+          enemy.position.x = Math.max(-58, Math.min(58, newPosX));
+          enemy.position.z = Math.max(-58, Math.min(58, newPosZ));
 
           if (!canSeePlayer) {
             enemy.alertTimer = ENEMY.ALERT_DURATION;

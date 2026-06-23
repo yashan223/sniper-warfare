@@ -139,10 +139,6 @@
         ● CYCLING
       </div>
 
-      <!-- Victory text -->
-      <div id="victory-text" style="display: none;">
-        AREA CLEARED
-      </div>
 
       <!-- Enemy count -->
       <div id="enemy-count"></div>
@@ -170,6 +166,18 @@
         <div class="gameover-subtitle">KILLED IN ACTION</div>
         <div id="final-stats" class="final-stats">Kills: 0 | Headshots: 0</div>
         <button id="restart-btn-go" class="menu-btn">REDEPLOY</button>
+      </div>
+    </div>
+
+    <!-- ======================== VICTORY ======================== -->
+    <div id="victory-screen" class="overlay-screen" style="display: none;">
+      <div class="victory-content">
+        <div class="victory-banner">MISSION</div>
+        <h2 class="victory-title">COMPLETE</h2>
+        <div class="victory-line"></div>
+        <div class="victory-subtitle">AREA SECURED &mdash; ALL TARGETS ELIMINATED</div>
+        <div id="victory-stats" class="final-stats">Kills: 0 | Headshots: 0</div>
+        <button id="restart-btn-victory" class="menu-btn victory-btn">REDEPLOY</button>
       </div>
     </div>
   </div>

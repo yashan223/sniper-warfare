@@ -13,6 +13,11 @@ export class Player {
   private pitchObject = new THREE.Object3D();
   private yawObject = new THREE.Object3D();
 
+  // Model
+  private model: THREE.Group | null = null;
+  private modelBaseScale = 1;
+  private modelBoxMinY = 0;
+
   // Position & physics
   position: THREE.Vector3;
   velocity = new THREE.Vector3();
@@ -51,7 +56,7 @@ export class Player {
   // Mouse sensitivity (can be adjusted)
   sensitivity: number = PLAYER.MOUSE_SENSITIVITY;
 
-  constructor(camera: THREE.PerspectiveCamera) {
+  constructor(camera: THREE.PerspectiveCamera, playerModelGLTF?: any) {
     this.camera = camera;
     this.position = new THREE.Vector3(-45, PLAYER.STAND_HEIGHT, -45);
 
@@ -60,7 +65,52 @@ export class Player {
     this.yawObject.add(this.pitchObject);
     this.yawObject.position.copy(this.position);
 
+    if (playerModelGLTF) {
+      const model = playerModelGLTF.scene.clone();
+      this.model = model;
+
+      // Compute bounding box to scale/center
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      this.modelBoxMinY = box.min.y;
+
+      // Scale to player height (1.8 units)
+      const targetHeight = 1.8;
+      const scaleFactor = size.y > 0 ? targetHeight / size.y : 1.0;
+      this.modelBaseScale = scaleFactor;
+      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+      // Center horizontally, place feet at ground level
+      model.position.set(-center.x * scaleFactor, -PLAYER.STAND_HEIGHT - (box.min.y * scaleFactor), -center.z * scaleFactor);
+
+      // Make it cast/receive shadows and put it on layer 1
+      model.traverse((child: any) => {
+        child.layers.set(1);
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material = child.material.map((m: THREE.Material) => this.darkenMaterial(m));
+            } else {
+              child.material = this.darkenMaterial(child.material);
+            }
+          }
+        }
+      });
+
+      this.yawObject.add(model);
+    }
+
     this.setupInput();
+  }
+
+  private darkenMaterial(mat: THREE.Material): THREE.Material {
+    return mat;
   }
 
   getObject(): THREE.Object3D {
@@ -120,6 +170,15 @@ export class Player {
     this.yawObject.position.x = this.position.x;
     this.yawObject.position.z = this.position.z;
     this.yawObject.position.y = this.currentEyeHeight + this.bobOffset;
+
+    // Update player model scaling and offset to align to ground based on eye height ratio
+    if (this.model) {
+      const ratio = this.currentEyeHeight / PLAYER.STAND_HEIGHT;
+      this.model.scale.y = this.modelBaseScale * ratio;
+      this.model.scale.x = this.modelBaseScale * (1 + (1 - ratio) * 0.3);
+      this.model.scale.z = this.modelBaseScale * (1 + (1 - ratio) * 0.3);
+      this.model.position.y = -this.currentEyeHeight - (this.modelBoxMinY * this.modelBaseScale * ratio);
+    }
   }
 
   private updateStance(delta: number): void {

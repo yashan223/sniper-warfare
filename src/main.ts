@@ -7,10 +7,12 @@ import { GameState, WEAPON, PLAYER } from './constants';
 import { PhysicsWorld } from './physics';
 import { AudioManager } from './audio';
 import { GameMap } from './map';
+import type { LoadedAssets } from './map';
 import { Player } from './player';
 import { SniperRifle } from './weapon';
 import { EnemyManager } from './enemies';
 import { HUD } from './hud';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './style.css';
 
 class Game {
@@ -32,7 +34,7 @@ class Game {
   private enemies!: EnemyManager;
 
   // State
-  private state = GameState.MENU;
+  private state: GameState = GameState.MENU;
   private animationId = 0;
   private spawnProtectionTimer = 0;
   private pendingState: GameState | null = null;
@@ -43,8 +45,91 @@ class Game {
   private gameOverEl!: HTMLElement;
   private gameContainer!: HTMLElement;
 
+  private loadedWeaponGLTF: any = null;
+
+  private loadedAssets: LoadedAssets = {
+    buildings: new Map(),
+    trees: new Map(),
+    decorations: new Map(),
+    fences: new Map(),
+  };
+
   constructor() {
-    this.init();
+    this.preloadAssets().then(() => {
+      this.init();
+    });
+  }
+
+  private async preloadAssets(): Promise<void> {
+    const startPrompt = document.querySelector('.start-prompt') as HTMLElement;
+    if (startPrompt) {
+      startPrompt.innerHTML = '<div class="reload-spinner" style="display:inline-block; margin-right:10px;"></div> LOADING MAP ASSETS <span id="load-pct">0%</span>';
+    }
+
+    const loader = new GLTFLoader();
+    const assetsToLoad = [
+      // Buildings
+      { type: 'building', name: 'building-type-a.glb', path: '/map-assets/building-type-a.glb' },
+      { type: 'building', name: 'building-type-b.glb', path: '/map-assets/building-type-b.glb' },
+      { type: 'building', name: 'building-type-c.glb', path: '/map-assets/building-type-c.glb' },
+      { type: 'building', name: 'building-type-d.glb', path: '/map-assets/building-type-d.glb' },
+      { type: 'building', name: 'building-type-e.glb', path: '/map-assets/building-type-e.glb' },
+      { type: 'building', name: 'building-type-f.glb', path: '/map-assets/building-type-f.glb' },
+      { type: 'building', name: 'building-type-g.glb', path: '/map-assets/building-type-g.glb' },
+      { type: 'building', name: 'building-type-h.glb', path: '/map-assets/building-type-h.glb' },
+      // Trees
+      { type: 'tree', name: 'tree-large.glb', path: '/map-assets/tree-large.glb' },
+      { type: 'tree', name: 'tree-small.glb', path: '/map-assets/tree-small.glb' },
+      // Decorations
+      { type: 'decoration', name: 'planter.glb', path: '/map-assets/planter.glb' },
+      { type: 'decoration', name: 'path-stones-messy.glb', path: '/map-assets/path-stones-messy.glb' },
+      // Fences
+      { type: 'fence', name: 'fence.glb', path: '/map-assets/fence.glb' },
+      { type: 'fence', name: 'fence-low.glb', path: '/map-assets/fence-low.glb' },
+      // Weapons
+      { type: 'weapon', name: 'awp.glb', path: '/gun-assets/awp.glb' },
+    ];
+
+    let loadedCount = 0;
+    const total = assetsToLoad.length;
+
+    const loadPromises = assetsToLoad.map((asset) => {
+      return new Promise<void>((resolve) => {
+        loader.load(
+          asset.path,
+          (gltf) => {
+            if (asset.type === 'building') {
+              this.loadedAssets.buildings.set(asset.name, gltf.scene);
+            } else if (asset.type === 'tree') {
+              this.loadedAssets.trees.set(asset.name, gltf.scene);
+            } else if (asset.type === 'decoration') {
+              this.loadedAssets.decorations.set(asset.name, gltf.scene);
+            } else if (asset.type === 'fence') {
+              this.loadedAssets.fences.set(asset.name, gltf.scene);
+            } else if (asset.type === 'weapon') {
+              this.loadedWeaponGLTF = gltf;
+            }
+            loadedCount++;
+            const pctEl = document.getElementById('load-pct');
+            if (pctEl) {
+              pctEl.textContent = `${Math.round((loadedCount / total) * 100)}%`;
+            }
+            resolve();
+          },
+          undefined,
+          (error) => {
+            console.error(`Error loading asset ${asset.path}:`, error);
+            resolve(); // Resolve anyway to not break game start
+          }
+        );
+      });
+    });
+
+    await Promise.all(loadPromises);
+
+    if (startPrompt) {
+      startPrompt.innerHTML = '<div class="start-icon">⊕</div><div>CLICK ANYWHERE TO DEPLOY</div>';
+    }
   }
 
   private init(): void {
@@ -76,12 +161,12 @@ class Game {
     this.scene.add(this.player.getObject());
 
     // Weapon
-    this.weapon = new SniperRifle(this.camera);
+    this.weapon = new SniperRifle(this.camera, this.loadedWeaponGLTF);
     this.camera.add(this.weapon.getWeaponGroup());
 
     // Map
     this.map = new GameMap();
-    const spawnPoints = this.map.build(this.scene, this.physics);
+    const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
 
     // Enemies
     this.enemies = new EnemyManager();
@@ -249,7 +334,7 @@ class Game {
     this.player.respawn();
 
     // Reset weapon
-    this.weapon = new SniperRifle(this.camera);
+    this.weapon = new SniperRifle(this.camera, this.loadedWeaponGLTF);
     // Clear old weapon from camera and add new
     this.camera.children.forEach(child => {
       if (child.name === 'weapon') this.camera.remove(child);
@@ -265,7 +350,7 @@ class Game {
       .filter((c) => c.name === 'map' || c.name === 'dust')
       .forEach((c) => this.scene.remove(c));
     this.map = new GameMap();
-    const spawnPoints = this.map.build(this.scene, this.physics);
+    const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
     this.enemies.spawnEnemies(spawnPoints, this.scene);
 
     // Reset HUD

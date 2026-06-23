@@ -46,14 +46,96 @@ export class SniperRifle {
   private camera: THREE.PerspectiveCamera;
   private currentFOV: number = WEAPON.NORMAL_FOV;
 
-  constructor(camera: THREE.PerspectiveCamera) {
+  // Animation Mixer for GLB weapon
+  private mixer!: THREE.AnimationMixer;
+  private actions: Record<string, THREE.AnimationAction> = {};
+
+  constructor(camera: THREE.PerspectiveCamera, weaponGLTF?: any) {
     this.camera = camera;
     this.muzzleFlashLight = new THREE.PointLight(0xFFAA44, 0, 10);
-    this.buildWeaponModel();
+    
+    if (weaponGLTF) {
+      this.buildGLTFWeaponModel(weaponGLTF);
+    } else {
+      this.buildWeaponModel();
+    }
   }
 
   getWeaponGroup(): THREE.Group {
     return this.weaponGroup;
+  }
+
+  private buildGLTFWeaponModel(gltf: any): void {
+    const gltfScene = gltf.scene.clone();
+
+    // Create a wrapper group to center and orient the model cleanly
+    const wrapper = new THREE.Group();
+    this.weaponGroup.add(wrapper);
+
+    // Compute bounding box of the unscaled gltf model
+    const box = new THREE.Box3().setFromObject(gltfScene);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    console.log('Weapon model size:', size, 'Center:', center);
+
+    // Center the gltf model inside the wrapper
+    gltfScene.position.copy(center).multiplyScalar(-1);
+    wrapper.add(gltfScene);
+
+    // Standardize length along the maximum dimension (size.x = 3.42 units) to 0.6 units
+    const targetLength = 0.6;
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scaleFactor = maxDim > 0 ? targetLength / maxDim : 1;
+    
+    // Scale and orient the wrapper
+    wrapper.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    wrapper.position.set(0.18, -0.15, -0.35); // offset to the bottom right
+    wrapper.rotation.y = Math.PI / 2; // Rotate 90 degrees to point forward along camera view (Z-axis)
+
+    gltfScene.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    this.mixer = new THREE.AnimationMixer(gltfScene);
+    
+    if (gltf.animations && Array.isArray(gltf.animations)) {
+      console.log('Weapon animations found:', gltf.animations.map((c: any) => c.name));
+      gltf.animations.forEach((clip: THREE.AnimationClip) => {
+        const name = clip.name.toLowerCase();
+        const action = this.mixer.clipAction(clip);
+        this.actions[name] = action;
+
+        if (name.includes('shoot') || name.includes('fire')) {
+          this.actions['shoot'] = action;
+        } else if (name.includes('reload')) {
+          this.actions['reload'] = action;
+        } else if (name.includes('idle')) {
+          this.actions['idle'] = action;
+        } else if (name.includes('aim')) {
+          this.actions['aim'] = action;
+        }
+      });
+    } else {
+      console.log('No weapon animations found in model.');
+    }
+
+    if (this.actions['idle']) {
+      this.actions['idle'].play();
+    }
+
+    // Muzzle flash light
+    this.muzzleFlashLight.position.set(0.18, -0.12, -0.9);
+    this.weaponGroup.add(this.muzzleFlashLight);
+
+    // Add hands/arms view model to the wrapper
+    this.addProceduralHandsGLTF(wrapper);
+
+    this.weaponGroup.name = 'weapon';
   }
 
   private buildWeaponModel(): void {
@@ -119,6 +201,9 @@ export class SniperRifle {
     this.muzzleFlashLight.position.set(0.25, -0.19, -1.45);
     this.weaponGroup.add(this.muzzleFlashLight);
 
+    // Add hands/arms view model to the weapon group
+    this.addProceduralHandsProcedural(this.weaponGroup);
+
     this.weaponGroup.name = 'weapon';
   }
 
@@ -144,6 +229,11 @@ export class SniperRifle {
 
     this.canFire = false;
     this.ammoInMag--;
+
+    // Play shoot animation
+    if (this.actions['shoot']) {
+      this.actions['shoot'].reset().play();
+    }
 
     // Sound
     audio.playSniper();
@@ -244,6 +334,11 @@ export class SniperRifle {
     this.isReloading = true;
     this.reloadTimer = WEAPON.RELOAD_TIME;
     hud.showReloading(true);
+
+    if (this.actions['reload']) {
+      this.actions['reload'].reset().play();
+    }
+
     audio.playReload();
   }
 
@@ -263,6 +358,10 @@ export class SniperRifle {
 
   // --- Update ---
   update(delta: number, hud: HUD, stance: Stance): void {
+    if (this.mixer) {
+      this.mixer.update(delta);
+    }
+
     // ADS transition
     const adsTarget = this.isADS ? 1 : 0;
     const adsSpeed = 1 / WEAPON.ADS_TRANSITION_TIME;
@@ -378,5 +477,159 @@ export class SniperRifle {
     } else {
       this.weaponGroup.rotation.x = 0;
     }
+  }
+
+  private addProceduralHandsGLTF(scene: THREE.Object3D): void {
+    // Sleeve material (tactical dark grey/blue fabric)
+    const sleeveMat = new THREE.MeshStandardMaterial({
+      color: 0x2e3138,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+
+    // Glove material (dark black tactical leather gloves)
+    const gloveMat = new THREE.MeshStandardMaterial({
+      color: 0x141416,
+      roughness: 0.6,
+      metalness: 0.15,
+    });
+
+    // Skin/Wrist connector (black/dark grey wristband)
+    const wristMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1c20,
+      roughness: 0.9,
+      metalness: 0.1,
+    });
+
+    // --- RIGHT HAND & ARM (Holding stock / grip) ---
+    // Right Hand Glove
+    const rightHandGeo = new THREE.BoxGeometry(0.25, 0.25, 0.4);
+    const rightHand = new THREE.Mesh(rightHandGeo, gloveMat);
+    rightHand.castShadow = true;
+    rightHand.receiveShadow = true;
+    // Positioned near trigger / pistol grip in unscaled local coordinates
+    rightHand.position.set(0.3, -0.15, 0.05);
+    rightHand.rotation.set(-0.2, 0.4, -0.1);
+    scene.add(rightHand);
+
+    // Right Wrist cuff
+    const rightWristGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8);
+    const rightWrist = new THREE.Mesh(rightWristGeo, wristMat);
+    rightWrist.castShadow = true;
+    rightWrist.position.set(0.45, -0.25, 0.15);
+    rightWrist.rotation.set(Math.PI / 4, 0, Math.PI / 6);
+    scene.add(rightWrist);
+
+    // Right Arm Sleeve
+    const rightArmGeo = new THREE.CylinderGeometry(0.22, 0.26, 2.0, 8);
+    const rightArm = new THREE.Mesh(rightArmGeo, sleeveMat);
+    rightArm.castShadow = true;
+    rightArm.receiveShadow = true;
+    rightArm.position.set(0.7, -0.5, 0.35);
+    rightArm.rotation.set(0.9, 0, 0.4);
+    scene.add(rightArm);
+
+    // --- LEFT HAND & ARM (Supporting under the barrel) ---
+    // Left Hand Glove
+    const leftHandGeo = new THREE.BoxGeometry(0.25, 0.22, 0.4);
+    const leftHand = new THREE.Mesh(leftHandGeo, gloveMat);
+    leftHand.castShadow = true;
+    leftHand.receiveShadow = true;
+    // Positioned forward under handguard in unscaled local coordinates
+    leftHand.position.set(-0.6, -0.1, -0.05);
+    leftHand.rotation.set(0.1, -0.2, -0.4);
+    scene.add(leftHand);
+
+    // Left Wrist cuff
+    const leftWristGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 8);
+    const leftWrist = new THREE.Mesh(leftWristGeo, wristMat);
+    leftWrist.castShadow = true;
+    leftWrist.position.set(-0.45, -0.2, -0.15);
+    leftWrist.rotation.set(Math.PI / 4, 0, -Math.PI / 6);
+    scene.add(leftWrist);
+
+    // Left Arm Sleeve
+    const leftArmGeo = new THREE.CylinderGeometry(0.22, 0.26, 2.0, 8);
+    const leftArm = new THREE.Mesh(leftArmGeo, sleeveMat);
+    leftArm.castShadow = true;
+    leftArm.receiveShadow = true;
+    leftArm.position.set(-0.2, -0.45, -0.3);
+    leftArm.rotation.set(0.8, 0, -0.4);
+    scene.add(leftArm);
+  }
+
+  private addProceduralHandsProcedural(parent: THREE.Group): void {
+    // Sleeve material (tactical dark grey/blue fabric)
+    const sleeveMat = new THREE.MeshStandardMaterial({
+      color: 0x2e3138,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+
+    // Glove material (dark black tactical leather gloves)
+    const gloveMat = new THREE.MeshStandardMaterial({
+      color: 0x141416,
+      roughness: 0.6,
+      metalness: 0.15,
+    });
+
+    // Skin/Wrist connector (black/dark grey wristband)
+    const wristMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1c20,
+      roughness: 0.9,
+      metalness: 0.1,
+    });
+
+    const baseX = 0.25;
+    const baseY = -0.22;
+    const baseZ = -0.5;
+
+    // --- RIGHT HAND & ARM ---
+    const rightHandGeo = new THREE.BoxGeometry(0.045, 0.045, 0.07);
+    const rightHand = new THREE.Mesh(rightHandGeo, gloveMat);
+    rightHand.castShadow = true;
+    rightHand.receiveShadow = true;
+    rightHand.position.set(baseX + 0.06, baseY - 0.08, baseZ + 0.05);
+    rightHand.rotation.set(-0.2, -0.4, 0.1);
+    parent.add(rightHand);
+
+    const rightWristGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.02, 8);
+    const rightWrist = new THREE.Mesh(rightWristGeo, wristMat);
+    rightWrist.castShadow = true;
+    rightWrist.position.set(baseX + 0.08, baseY - 0.11, baseZ + 0.1);
+    rightWrist.rotation.set(Math.PI / 4, 0, -Math.PI / 6);
+    parent.add(rightWrist);
+
+    const rightArmGeo = new THREE.CylinderGeometry(0.038, 0.045, 0.35, 8);
+    const rightArm = new THREE.Mesh(rightArmGeo, sleeveMat);
+    rightArm.castShadow = true;
+    rightArm.receiveShadow = true;
+    rightArm.position.set(baseX + 0.12, baseY - 0.19, baseZ + 0.22);
+    rightArm.rotation.set(0.9, 0, -0.4);
+    parent.add(rightArm);
+
+    // --- LEFT HAND & ARM ---
+    const leftHandGeo = new THREE.BoxGeometry(0.045, 0.04, 0.07);
+    const leftHand = new THREE.Mesh(leftHandGeo, gloveMat);
+    leftHand.castShadow = true;
+    leftHand.receiveShadow = true;
+    leftHand.position.set(baseX - 0.03, baseY - 0.06, baseZ - 0.15);
+    leftHand.rotation.set(0.1, 0.2, 0.4);
+    parent.add(leftHand);
+
+    const leftWristGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.02, 8);
+    const leftWrist = new THREE.Mesh(leftWristGeo, wristMat);
+    leftWrist.castShadow = true;
+    leftWrist.position.set(baseX - 0.06, baseY - 0.1, baseZ - 0.08);
+    leftWrist.rotation.set(Math.PI / 4, 0, Math.PI / 6);
+    parent.add(leftWrist);
+
+    const leftArmGeo = new THREE.CylinderGeometry(0.038, 0.045, 0.35, 8);
+    const leftArm = new THREE.Mesh(leftArmGeo, sleeveMat);
+    leftArm.castShadow = true;
+    leftArm.receiveShadow = true;
+    leftArm.position.set(baseX - 0.1, baseY - 0.19, baseZ + 0.08);
+    leftArm.rotation.set(0.8, 0, 0.4);
+    parent.add(leftArm);
   }
 }

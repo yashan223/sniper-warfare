@@ -11,6 +11,13 @@ export interface EnemySpawnPoint {
   waypoints: THREE.Vector3[];
 }
 
+export interface LoadedAssets {
+  buildings: Map<string, THREE.Group>;
+  trees: Map<string, THREE.Group>;
+  decorations: Map<string, THREE.Group>;
+  fences: Map<string, THREE.Group>;
+}
+
 export class GameMap {
   private group = new THREE.Group();
   private obstacleGroup = new THREE.Group();
@@ -26,7 +33,7 @@ export class GameMap {
     return this.obstacleGroup;
   }
 
-  build(scene: THREE.Scene, physics: PhysicsWorld): EnemySpawnPoint[] {
+  build(scene: THREE.Scene, physics: PhysicsWorld, assets: LoadedAssets): EnemySpawnPoint[] {
     this.group.name = 'map';
     this.obstacleGroup.name = 'obstacles';
     this.group.add(this.obstacleGroup);
@@ -34,8 +41,8 @@ export class GameMap {
     this.buildGround();
     this.buildSkybox(scene);
     this.buildBoundaries(physics);
-    const spawns = this.buildBuildings(physics);
-    this.buildCover(physics);
+    const spawns = this.buildBuildings(physics, assets);
+    this.buildCover(physics, assets);
     this.buildStreets();
     this.buildDust(scene);
     this.buildLighting(scene);
@@ -95,7 +102,7 @@ export class GameMap {
   }
 
   // --- Main buildings ---
-  private buildBuildings(physics: PhysicsWorld): EnemySpawnPoint[] {
+  private buildBuildings(physics: PhysicsWorld, assets: LoadedAssets): EnemySpawnPoint[] {
     const spawns: EnemySpawnPoint[] = [];
 
     // Building definitions: [x, z, width, depth, floors, hasRoofAccess]
@@ -115,55 +122,85 @@ export class GameMap {
 
     const floorH = 3.5;
 
-    buildings.forEach((b) => {
+    buildings.forEach((b, index) => {
       const totalH = b.floors * floorH;
 
-      // Main walls
-      const wallColor = Math.random() > 0.5
-        ? MAP.BUILDING_COLORS.WALL
-        : MAP.BUILDING_COLORS.WALL_DARK;
+      const modelLetter = String.fromCharCode(97 + (index % 8)); // a, b, c, d, e, f, g, h
+      const modelName = `building-type-${modelLetter}.glb`;
+      const model = assets.buildings?.get(modelName);
 
-      // Front wall
-      this.addWall(b.x, totalH / 2, b.z - b.d / 2, b.w, totalH, 0.4, wallColor, physics);
-      // Back wall
-      this.addWall(b.x, totalH / 2, b.z + b.d / 2, b.w, totalH, 0.4, wallColor, physics);
-      // Left wall
-      this.addWall(b.x - b.w / 2, totalH / 2, b.z, 0.4, totalH, b.d, wallColor, physics);
-      // Right wall
-      this.addWall(b.x + b.w / 2, totalH / 2, b.z, 0.4, totalH, b.d, wallColor, physics);
+      if (model) {
+        console.log(`[MAP] Successfully placed GLB building: ${modelName} at (${b.x}, ${b.z})`);
+        const instance = model.clone();
+        instance.position.set(b.x, 0, b.z);
 
-      // Roof
-      this.addWall(b.x, totalH, b.z, b.w, 0.3, b.d, MAP.BUILDING_COLORS.ROOF, physics);
+        const box = new THREE.Box3().setFromObject(instance);
+        const size = new THREE.Vector3();
+        box.getSize(size);
 
-      // Floors between levels
-      for (let f = 1; f < b.floors; f++) {
-        this.addWall(b.x, f * floorH, b.z, b.w - 0.8, 0.2, b.d - 0.8, MAP.BUILDING_COLORS.FLOOR, physics);
-      }
+        const scaleX = size.x > 0 ? b.w / size.x : 1;
+        const scaleY = size.y > 0 ? totalH / size.y : 1;
+        const scaleZ = size.z > 0 ? b.d / size.z : 1;
+        instance.scale.set(scaleX, scaleY, scaleZ);
 
-      // Window sills — no shadows, just decoration
-      for (let f = 0; f < b.floors; f++) {
-        const windowY = f * floorH + floorH * 0.6;
-        const numWindows = Math.floor(b.w / 3);
-        const sillGeo = new THREE.BoxGeometry(1.2, 0.1, 0.15);
-        for (let wi = 0; wi < numWindows; wi++) {
-          const wx = b.x - b.w / 2 + (wi + 1) * (b.w / (numWindows + 1));
-          const sill = new THREE.Mesh(sillGeo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
-          sill.position.set(wx, windowY - 0.5, b.z - b.d / 2 - 0.15);
-          this.group.add(sill);
+        instance.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        this.group.add(instance);
+        this.obstacleGroup.add(instance.clone());
+        physics.addMeshCollider(instance);
+      } else {
+        console.warn(`[MAP] Failed to find GLB building: ${modelName}, falling back to procedural.`);
+        const wallColor = Math.random() > 0.5
+          ? MAP.BUILDING_COLORS.WALL
+          : MAP.BUILDING_COLORS.WALL_DARK;
+
+        // Front wall
+        this.addWall(b.x, totalH / 2, b.z - b.d / 2, b.w, totalH, 0.4, wallColor, physics);
+        // Back wall
+        this.addWall(b.x, totalH / 2, b.z + b.d / 2, b.w, totalH, 0.4, wallColor, physics);
+        // Left wall
+        this.addWall(b.x - b.w / 2, totalH / 2, b.z, 0.4, totalH, b.d, wallColor, physics);
+        // Right wall
+        this.addWall(b.x + b.w / 2, totalH / 2, b.z, 0.4, totalH, b.d, wallColor, physics);
+
+        // Roof
+        this.addWall(b.x, totalH, b.z, b.w, 0.3, b.d, MAP.BUILDING_COLORS.ROOF, physics);
+
+        // Floors between levels
+        for (let f = 1; f < b.floors; f++) {
+          this.addWall(b.x, f * floorH, b.z, b.w - 0.8, 0.2, b.d - 0.8, MAP.BUILDING_COLORS.FLOOR, physics);
         }
-      }
 
-      // Staircase inside (simplified as ramp)
-      const stairW = 1.5;
-      const stairD = b.d * 0.7;
-      for (let f = 0; f < b.floors - 1; f++) {
-        const stairGeo = new THREE.BoxGeometry(stairW, 0.15, stairD);
-        const stairMesh = new THREE.Mesh(stairGeo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
-        const baseY = f * floorH;
-        stairMesh.position.set(b.x + b.w / 2 - stairW, baseY + floorH / 2, b.z);
-        stairMesh.rotation.x = Math.atan2(floorH, stairD);
-        stairMesh.castShadow = true;
-        this.group.add(stairMesh);
+        // Window sills
+        for (let f = 0; f < b.floors; f++) {
+          const windowY = f * floorH + floorH * 0.6;
+          const numWindows = Math.floor(b.w / 3);
+          const sillGeo = new THREE.BoxGeometry(1.2, 0.1, 0.15);
+          for (let wi = 0; wi < numWindows; wi++) {
+            const wx = b.x - b.w / 2 + (wi + 1) * (b.w / (numWindows + 1));
+            const sill = new THREE.Mesh(sillGeo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
+            sill.position.set(wx, windowY - 0.5, b.z - b.d / 2 - 0.15);
+            this.group.add(sill);
+          }
+        }
+
+        // Staircase inside
+        const stairW = 1.5;
+        const stairD = b.d * 0.7;
+        for (let f = 0; f < b.floors - 1; f++) {
+          const stairGeo = new THREE.BoxGeometry(stairW, 0.15, stairD);
+          const stairMesh = new THREE.Mesh(stairGeo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
+          const baseY = f * floorH;
+          stairMesh.position.set(b.x + b.w / 2 - stairW, baseY + floorH / 2, b.z);
+          stairMesh.rotation.x = Math.atan2(floorH, stairD);
+          stairMesh.castShadow = true;
+          this.group.add(stairMesh);
+        }
       }
 
       // Enemy spawn points near buildings
@@ -198,8 +235,8 @@ export class GameMap {
   }
 
   // --- Cover objects ---
-  private buildCover(physics: PhysicsWorld): void {
-    // Sandbag walls
+  private buildCover(physics: PhysicsWorld, assets: LoadedAssets): void {
+    // Sandbag walls -> replace with fence-low.glb if available
     const sandbagPositions: [number, number, number, number][] = [
       [0, 0.4, -10, 0],
       [10, 0.4, 5, Math.PI / 4],
@@ -210,18 +247,42 @@ export class GameMap {
     ];
 
     sandbagPositions.forEach(([x, y, z, rot]) => {
-      // Single merged sandbag wall instead of individual bags
-      const wallGeo = new THREE.BoxGeometry(4.2, 1.0, 0.5);
-      const wallMesh = new THREE.Mesh(wallGeo, this.mat(MAP.BUILDING_COLORS.SANDBAG));
-      wallMesh.position.set(x, 0.5, z);
-      wallMesh.rotation.y = rot;
-      wallMesh.castShadow = true;
-      wallMesh.receiveShadow = true;
-      this.group.add(wallMesh);
-      physics.addMeshCollider(wallMesh);
+      const fenceModel = assets.fences?.get('fence-low.glb');
+      if (fenceModel) {
+        const instance = fenceModel.clone();
+        instance.position.set(x, 0, z);
+        instance.rotation.y = rot;
+
+        const box = new THREE.Box3().setFromObject(instance);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const scaleX = size.x > 0 ? 4.2 / size.x : 1;
+        const scaleY = size.y > 0 ? 1.0 / size.y : 1;
+        const scaleZ = size.z > 0 ? 0.5 / size.z : 1;
+        instance.scale.set(scaleX, scaleY, scaleZ);
+
+        instance.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        this.group.add(instance);
+        physics.addMeshCollider(instance);
+      } else {
+        const wallGeo = new THREE.BoxGeometry(4.2, 1.0, 0.5);
+        const wallMesh = new THREE.Mesh(wallGeo, this.mat(MAP.BUILDING_COLORS.SANDBAG));
+        wallMesh.position.set(x, 0.5, z);
+        wallMesh.rotation.y = rot;
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
+        this.group.add(wallMesh);
+        physics.addMeshCollider(wallMesh);
+      }
     });
 
-    // Concrete barriers (jersey barriers)
+    // Concrete barriers (jersey barriers) -> replace with planter.glb if available
     const barrierPositions: [number, number, number][] = [
       [-10, 0, 10],
       [5, 0, -20],
@@ -231,14 +292,72 @@ export class GameMap {
     ];
 
     barrierPositions.forEach(([x, _, z]) => {
-      const geo = new THREE.BoxGeometry(3, 1.0, 0.6);
-      const mesh = new THREE.Mesh(geo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
-      mesh.position.set(x, 0.5, z);
-      mesh.rotation.y = Math.random() * Math.PI;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      this.group.add(mesh);
-      physics.addMeshCollider(mesh);
+      const planterModel = assets.decorations?.get('planter.glb');
+      if (planterModel) {
+        const instance = planterModel.clone();
+        instance.position.set(x, 0, z);
+        instance.rotation.y = Math.random() * Math.PI;
+
+        const box = new THREE.Box3().setFromObject(instance);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const scaleX = size.x > 0 ? 3.0 / size.x : 1;
+        const scaleY = size.y > 0 ? 1.0 / size.y : 1;
+        const scaleZ = size.z > 0 ? 0.6 / size.z : 1;
+        instance.scale.set(scaleX, scaleY, scaleZ);
+
+        instance.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        this.group.add(instance);
+        physics.addMeshCollider(instance);
+      } else {
+        const geo = new THREE.BoxGeometry(3, 1.0, 0.6);
+        const mesh = new THREE.Mesh(geo, this.mat(MAP.BUILDING_COLORS.CONCRETE));
+        mesh.position.set(x, 0.5, z);
+        mesh.rotation.y = Math.random() * Math.PI;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.group.add(mesh);
+        physics.addMeshCollider(mesh);
+      }
+    });
+
+    // Place trees on the map!
+    const treePositions: { x: number; z: number; type: 'large' | 'small' }[] = [
+      { x: -15, z: -15, type: 'large' },
+      { x: 15, z: -15, type: 'large' },
+      { x: -35, z: 20, type: 'large' },
+      { x: 35, z: 20, type: 'large' },
+      { x: 10, z: 10, type: 'small' },
+      { x: -10, z: -10, type: 'small' },
+      { x: 0, z: 30, type: 'small' },
+      { x: 20, z: -35, type: 'small' },
+    ];
+
+    treePositions.forEach((pos) => {
+      const treeModel = assets.trees?.get(pos.type === 'large' ? 'tree-large.glb' : 'tree-small.glb');
+      if (treeModel) {
+        const instance = treeModel.clone();
+        instance.position.set(pos.x, 0, pos.z);
+
+        const scale = 0.8 + Math.random() * 0.4;
+        instance.scale.set(scale, scale, scale);
+        instance.rotation.y = Math.random() * Math.PI * 2;
+
+        instance.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        this.group.add(instance);
+        physics.addMeshCollider(instance);
+      }
     });
 
     // Destroyed vehicles

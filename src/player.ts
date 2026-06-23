@@ -20,7 +20,7 @@ export class Player {
   private isOnGround = true;
 
   // Stance
-  stance = Stance.STANDING;
+  stance: Stance = Stance.STANDING;
   private currentEyeHeight: number = PLAYER.STAND_HEIGHT;
   private targetEyeHeight: number = PLAYER.STAND_HEIGHT;
 
@@ -49,7 +49,7 @@ export class Player {
   private currentSpeed = 0;
 
   // Mouse sensitivity (can be adjusted)
-  sensitivity = PLAYER.MOUSE_SENSITIVITY;
+  sensitivity: number = PLAYER.MOUSE_SENSITIVITY;
 
   constructor(camera: THREE.PerspectiveCamera) {
     this.camera = camera;

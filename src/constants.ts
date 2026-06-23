@@ -148,24 +148,27 @@ export const RENDER = {
 } as const;
 
 // --- Game States ---
-export enum GameState {
-  MENU = 'MENU',
-  PLAYING = 'PLAYING',
-  PAUSED = 'PAUSED',
-  GAME_OVER = 'GAME_OVER',
-}
+export const GameState = {
+  MENU: 'MENU',
+  PLAYING: 'PLAYING',
+  PAUSED: 'PAUSED',
+  GAME_OVER: 'GAME_OVER',
+} as const;
+export type GameState = typeof GameState[keyof typeof GameState];
 
 // --- Player Stance ---
-export enum Stance {
-  STANDING = 'STANDING',
-  CROUCHING = 'CROUCHING',
-  PRONE = 'PRONE',
-}
+export const Stance = {
+  STANDING: 'STANDING',
+  CROUCHING: 'CROUCHING',
+  PRONE: 'PRONE',
+} as const;
+export type Stance = typeof Stance[keyof typeof Stance];
 
 // --- Enemy States ---
-export enum EnemyState {
-  PATROL = 'PATROL',
-  ALERT = 'ALERT',
-  COMBAT = 'COMBAT',
-  DEAD = 'DEAD',
-}
+export const EnemyState = {
+  PATROL: 'PATROL',
+  ALERT: 'ALERT',
+  COMBAT: 'COMBAT',
+  DEAD: 'DEAD',
+} as const;
+export type EnemyState = typeof EnemyState[keyof typeof EnemyState];

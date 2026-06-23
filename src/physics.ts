@@ -19,8 +19,22 @@ export class PhysicsWorld {
     this.colliders.push(box);
   }
 
-  addMeshCollider(mesh: THREE.Mesh): void {
+  addMeshCollider(mesh: THREE.Object3D): void {
+    mesh.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(mesh);
+    
+    if (isNaN(box.min.x) || isNaN(box.max.x) || isNaN(box.min.y) || isNaN(box.max.y) || isNaN(box.min.z) || isNaN(box.max.z)) {
+      console.warn(`[PHYSICS] Warning: Bounding box for ${mesh.name || 'unnamed'} contains NaN!`, box);
+      return;
+    }
+    
+    if (!isFinite(box.min.x) || !isFinite(box.max.x)) {
+      console.warn(`[PHYSICS] Warning: Bounding box for ${mesh.name || 'unnamed'} is Infinite!`, box);
+      return;
+    }
+
+    console.log(`[PHYSICS] Added collider: name=${mesh.name || 'unnamed'}, min=(${box.min.x.toFixed(2)}, ${box.min.y.toFixed(2)}, ${box.min.z.toFixed(2)}), max=(${box.max.x.toFixed(2)}, ${box.max.y.toFixed(2)}, ${box.max.z.toFixed(2)})`);
+    
     this.colliders.push({
       min: box.min.clone(),
       max: box.max.clone(),

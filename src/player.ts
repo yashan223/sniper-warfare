@@ -227,11 +227,12 @@ export class Player {
 
     // Smooth height transition
     const diff = this.targetEyeHeight - this.currentEyeHeight;
-    if (Math.abs(diff) > 0.01) {
-      this.currentEyeHeight += Math.sign(diff) * PLAYER.STANCE_TRANSITION_SPEED * delta;
-      // Clamp to target
-      if (Math.abs(this.targetEyeHeight - this.currentEyeHeight) < 0.02) {
+    if (Math.abs(diff) > 0.001) {
+      const step = PLAYER.STANCE_TRANSITION_SPEED * delta;
+      if (Math.abs(diff) <= step) {
         this.currentEyeHeight = this.targetEyeHeight;
+      } else {
+        this.currentEyeHeight += Math.sign(diff) * step;
       }
     }
   }

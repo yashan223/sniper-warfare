@@ -46,75 +46,168 @@ export class AudioManager {
     return this.masterGain!;
   }
 
-  // --- Sniper Shot: sharp transient + low boom ---
+  // --- Sniper Shot: sharp transient + low boom with reverb & compression ---
   playSniper(): void {
     const ctx = this.ensureCtx();
     const now = ctx.currentTime;
 
+    // ── Shared output chain: Compressor → Master Gain ─────────────────
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 6;
+    compressor.ratio.value = 8;
+    compressor.attack.value = 0.0003;
+    compressor.release.value = 0.25;
+    compressor.connect(this.gain);
+
     if (this.fireBuffer) {
+      // ── File-based path ───────────────────────────────────────────────
       const source = ctx.createBufferSource();
       source.buffer = this.fireBuffer;
-      source.connect(this.gain);
+
+      // High-pass to clean up mud below 80 Hz
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 80;
+
+      // Peaking EQ: boost crack at 3 kHz for presence
+      const crack = ctx.createBiquadFilter();
+      crack.type = 'peaking';
+      crack.frequency.value = 3000;
+      crack.gain.value = 6;
+      crack.Q.value = 1.2;
+
+      // Dry gain
+      const dryGain = ctx.createGain();
+      dryGain.gain.value = 1.1;
+
+      source.connect(hp).connect(crack).connect(dryGain).connect(compressor);
       source.start(now);
+
+      // Short convolver reverb tail (synthetic IR)
+      this.createReverb(ctx, compressor, now, 0.6, 0.35);
+      source.connect(this.createReverbSend(ctx, compressor, 0.6, 0.35));
+
       return;
     }
 
-    // Sharp transient (noise burst)
-    const noiseLen = 0.08;
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * noiseLen, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseData.length, 3);
+    // ── Procedural path ────────────────────────────────────────────────
+
+    // 1. Muzzle blast — sharp broadband noise burst with peaking EQ
+    const blastLen = 0.06;
+    const blastBuf = ctx.createBuffer(1, ctx.sampleRate * blastLen, ctx.sampleRate);
+    const blastData = blastBuf.getChannelData(0);
+    for (let i = 0; i < blastData.length; i++) {
+      blastData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / blastData.length, 2.5);
     }
-    const noiseNode = ctx.createBufferSource();
-    noiseNode.buffer = noiseBuffer;
+    const blast = ctx.createBufferSource();
+    blast.buffer = blastBuf;
 
-    const noiseFilt = ctx.createBiquadFilter();
-    noiseFilt.type = 'bandpass';
-    noiseFilt.frequency.value = 3000;
-    noiseFilt.Q.value = 0.8;
+    const blastHP = ctx.createBiquadFilter();
+    blastHP.type = 'highpass';
+    blastHP.frequency.value = 200;
 
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(1.0, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + noiseLen);
+    const blastPeak = ctx.createBiquadFilter();
+    blastPeak.type = 'peaking';
+    blastPeak.frequency.value = 2800;
+    blastPeak.gain.value = 8;
+    blastPeak.Q.value = 0.9;
 
-    noiseNode.connect(noiseFilt).connect(noiseGain).connect(this.gain);
-    noiseNode.start(now);
-    noiseNode.stop(now + noiseLen);
+    const blastGain = ctx.createGain();
+    blastGain.gain.setValueAtTime(1.4, now);
+    blastGain.gain.exponentialRampToValueAtTime(0.01, now + blastLen);
 
-    // Low boom
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+    blast.connect(blastHP).connect(blastPeak).connect(blastGain).connect(compressor);
+    blast.start(now);
+    blast.stop(now + blastLen + 0.01);
 
-    const oscGain = ctx.createGain();
-    oscGain.gain.setValueAtTime(0.8, now);
-    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    // 2. Sub-bass thump (body of the shot)
+    const thump = ctx.createOscillator();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(140, now);
+    thump.frequency.exponentialRampToValueAtTime(28, now + 0.28);
 
-    osc.connect(oscGain).connect(this.gain);
-    osc.start(now);
-    osc.stop(now + 0.4);
+    const thumpGain = ctx.createGain();
+    thumpGain.gain.setValueAtTime(1.0, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
-    // Crack / echo tail
-    const echoLen = 0.5;
-    const echoBuffer = ctx.createBuffer(1, ctx.sampleRate * echoLen, ctx.sampleRate);
-    const echoData = echoBuffer.getChannelData(0);
-    for (let i = 0; i < echoData.length; i++) {
-      echoData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / echoData.length, 5) * 0.3;
+    thump.connect(thumpGain).connect(compressor);
+    thump.start(now);
+    thump.stop(now + 0.35);
+
+    // 3. Mid crack — bandpass filtered noise
+    const crackLen = 0.04;
+    const crackBuf = ctx.createBuffer(1, ctx.sampleRate * crackLen, ctx.sampleRate);
+    const crackData = crackBuf.getChannelData(0);
+    for (let i = 0; i < crackData.length; i++) {
+      crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / crackData.length, 4);
     }
-    const echoNode = ctx.createBufferSource();
-    echoNode.buffer = echoBuffer;
-    const echoFilt = ctx.createBiquadFilter();
-    echoFilt.type = 'lowpass';
-    echoFilt.frequency.value = 800;
-    const echoGain = ctx.createGain();
-    echoGain.gain.setValueAtTime(0.4, now + 0.05);
-    echoGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    echoNode.connect(echoFilt).connect(echoGain).connect(this.gain);
-    echoNode.start(now + 0.05);
-    echoNode.stop(now + 0.55);
+    const crackSrc = ctx.createBufferSource();
+    crackSrc.buffer = crackBuf;
+    const crackFilt = ctx.createBiquadFilter();
+    crackFilt.type = 'bandpass';
+    crackFilt.frequency.value = 4500;
+    crackFilt.Q.value = 1.2;
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(0.9, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.01, now + crackLen);
+    crackSrc.connect(crackFilt).connect(crackGain).connect(compressor);
+    crackSrc.start(now);
+    crackSrc.stop(now + crackLen + 0.01);
+
+    // 4. Echo tail #1 — close wall reflection (50ms)
+    this.scheduleEcho(ctx, compressor, now + 0.05, 600, 0.55, 0.3);
+
+    // 5. Echo tail #2 — distant reverb (120ms, quieter)
+    this.scheduleEcho(ctx, compressor, now + 0.12, 350, 0.8, 0.18);
   }
+
+  /** Schedules a low-pass filtered noise burst echo at a given time */
+  private scheduleEcho(
+    ctx: AudioContext, dest: AudioNode,
+    startTime: number, lpFreq: number, dur: number, vol: number
+  ): void {
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 4) * 0.4;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = lpFreq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, startTime);
+    g.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+    src.connect(filt).connect(g).connect(dest);
+    src.start(startTime);
+    src.stop(startTime + dur + 0.01);
+  }
+
+  /** Creates a synthetic convolver reverb send and returns the send gain node */
+  private createReverbSend(
+    ctx: AudioContext, dest: AudioNode, irDuration: number, wetGain: number
+  ): GainNode {
+    const rate = ctx.sampleRate;
+    const length = Math.floor(rate * irDuration);
+    const ir = ctx.createBuffer(2, length, rate);
+    for (let c = 0; c < 2; c++) {
+      const ch = ir.getChannelData(c);
+      for (let i = 0; i < length; i++) {
+        ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+      }
+    }
+    const convolver = ctx.createConvolver();
+    convolver.buffer = ir;
+    const send = ctx.createGain();
+    send.gain.value = wetGain;
+    send.connect(convolver).connect(dest);
+    return send;
+  }
+
+  /** Unused — kept for compatibility */
+  private createReverb(_ctx: AudioContext, _dest: AudioNode, _now: number, _dur: number, _wet: number): void {}
 
   // --- Bolt action: metallic click sequence ---
   playBoltAction(): void {

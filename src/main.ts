@@ -73,28 +73,34 @@ class Game {
 
     const loader = new GLTFLoader();
     const assetsToLoad = [
-      // Buildings
-      { type: 'building', name: 'building-type-a.glb', path: '/map-assets/building-type-a.glb' },
-      { type: 'building', name: 'building-type-b.glb', path: '/map-assets/building-type-b.glb' },
-      { type: 'building', name: 'building-type-c.glb', path: '/map-assets/building-type-c.glb' },
-      { type: 'building', name: 'building-type-d.glb', path: '/map-assets/building-type-d.glb' },
-      { type: 'building', name: 'building-type-e.glb', path: '/map-assets/building-type-e.glb' },
-      { type: 'building', name: 'building-type-f.glb', path: '/map-assets/building-type-f.glb' },
-      { type: 'building', name: 'building-type-g.glb', path: '/map-assets/building-type-g.glb' },
-      { type: 'building', name: 'building-type-h.glb', path: '/map-assets/building-type-h.glb' },
+      // Buildings (all 21 types)
+      ...['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u'].map(letter => ({
+        type: 'building', name: `building-type-${letter}.glb`, path: `/map-assets/building-type-${letter}.glb`
+      })),
       // Trees
       { type: 'tree', name: 'tree-large.glb', path: '/map-assets/tree-large.glb' },
       { type: 'tree', name: 'tree-small.glb', path: '/map-assets/tree-small.glb' },
       // Decorations
       { type: 'decoration', name: 'planter.glb', path: '/map-assets/planter.glb' },
       { type: 'decoration', name: 'path-stones-messy.glb', path: '/map-assets/path-stones-messy.glb' },
-      // Fences
+      { type: 'decoration', name: 'path-stones-short.glb', path: '/map-assets/path-stones-short.glb' },
+      { type: 'decoration', name: 'path-stones-long.glb', path: '/map-assets/path-stones-long.glb' },
+      { type: 'decoration', name: 'path-short.glb', path: '/map-assets/path-short.glb' },
+      { type: 'decoration', name: 'path-long.glb', path: '/map-assets/path-long.glb' },
+      { type: 'decoration', name: 'driveway-short.glb', path: '/map-assets/driveway-short.glb' },
+      { type: 'decoration', name: 'driveway-long.glb', path: '/map-assets/driveway-long.glb' },
+      // Fences (all variants)
       { type: 'fence', name: 'fence.glb', path: '/map-assets/fence.glb' },
       { type: 'fence', name: 'fence-low.glb', path: '/map-assets/fence-low.glb' },
+      { type: 'fence', name: 'fence-1x2.glb', path: '/map-assets/fence-1x2.glb' },
+      { type: 'fence', name: 'fence-1x3.glb', path: '/map-assets/fence-1x3.glb' },
+      { type: 'fence', name: 'fence-1x4.glb', path: '/map-assets/fence-1x4.glb' },
+      { type: 'fence', name: 'fence-2x2.glb', path: '/map-assets/fence-2x2.glb' },
+      { type: 'fence', name: 'fence-2x3.glb', path: '/map-assets/fence-2x3.glb' },
+      { type: 'fence', name: 'fence-3x2.glb', path: '/map-assets/fence-3x2.glb' },
+      { type: 'fence', name: 'fence-3x3.glb', path: '/map-assets/fence-3x3.glb' },
       // Weapons
       { type: 'weapon', name: 'awp.glb', path: '/gun-assets/awp.glb' },
-      // Player Model
-      { type: 'playerModel', name: 'robot-3332.glb', path: '/player-assets/robot-3332.glb' },
     ];
 
     let loadedCount = 0;
@@ -115,8 +121,6 @@ class Game {
               this.loadedAssets.fences.set(asset.name, gltf.scene);
             } else if (asset.type === 'weapon') {
               this.loadedWeaponGLTF = gltf;
-            } else if (asset.type === 'playerModel') {
-              this.loadedPlayerModelGLTF = gltf;
             }
             loadedCount++;
             const pctEl = document.getElementById('load-pct');
@@ -165,8 +169,8 @@ class Game {
     // Scene
     this.scene = new THREE.Scene();
 
-    // Player
-    this.player = new Player(this.camera, this.loadedPlayerModelGLTF);
+    // Player (no third-person model — pure FPS)
+    this.player = new Player(this.camera);
     this.scene.add(this.player.getObject());
 
     // Weapon
@@ -424,13 +428,13 @@ class Game {
     // Update systems
     this.player.update(delta, this.physics, this.audio, this.weapon.isADS);
 
-    // Apply recoil
+    // Apply recoil — push the player's pitch up then recover each frame
     const recoil = this.weapon.getRecoilPitch();
     if (recoil > 0) {
-      // camera pitch is on the pitchObject inside player
-      // We use a workaround: temporarily offset camera
-      this.camera.rotation.x -= recoil;
+      this.player.applyRecoil(recoil);
     }
+    // Smoothly recover recoil toward zero
+    this.player.recoverRecoil(delta);
 
     // Sprint weapon anim
     this.weapon.setSprinting(this.player.isSprinting);

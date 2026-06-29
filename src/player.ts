@@ -56,6 +56,10 @@ export class Player {
   // Mouse sensitivity (can be adjusted)
   sensitivity: number = PLAYER.MOUSE_SENSITIVITY;
 
+  // Recoil (applied to pitchObject)
+  private recoilOffset = 0;
+  private recoilVelocity = 0;
+
   constructor(camera: THREE.PerspectiveCamera, playerModelGLTF?: any) {
     this.camera = camera;
     this.position = new THREE.Vector3(-45, PLAYER.STAND_HEIGHT, -45);
@@ -108,6 +112,30 @@ export class Player {
 
     this.setupInput();
   }
+
+  applyRecoil(amount: number): void {
+    // Kick pitch object upward (negative X = look up)
+    this.recoilVelocity -= amount * 8;
+  }
+
+  recoverRecoil(delta: number): void {
+    if (Math.abs(this.recoilVelocity) < 0.0001 && Math.abs(this.recoilOffset) < 0.0001) return;
+
+    // Spring-damp toward zero
+    const stiffness = 14.0;
+    const damping = 7.0;
+    const force = -stiffness * this.recoilOffset - damping * this.recoilVelocity;
+    this.recoilVelocity += force * delta;
+    this.recoilOffset += this.recoilVelocity * delta;
+
+    // Apply to pitch, clamped
+    this.pitchObject.rotation.x = Math.max(
+      -Math.PI / 2 * 0.95,
+      Math.min(Math.PI / 2 * 0.95, this.pitchObject.rotation.x + this.recoilOffset - (this._prevRecoilOffset ?? 0))
+    );
+    this._prevRecoilOffset = this.recoilOffset;
+  }
+  private _prevRecoilOffset = 0;
 
   private darkenMaterial(mat: THREE.Material): THREE.Material {
     return mat;

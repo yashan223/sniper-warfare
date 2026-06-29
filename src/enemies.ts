@@ -179,7 +179,7 @@ export class EnemyManager {
     if (!enemy || enemy.state === EnemyState.DEAD) return null;
 
     const isHeadshot = obj.userData.type === 'head';
-    const damage = isHeadshot ? 150 : 70; // headshot = instant kill
+    const damage = isHeadshot ? 150 : 100; // both headshot and body = instant kill
 
     enemy.health -= damage;
     const killed = enemy.health <= 0;

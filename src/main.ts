@@ -40,6 +40,8 @@ class Game {
   private pendingState: GameState | null = null;
   private shakeIntensity = 0; // camera shake
   private victoryTimer = -1; // countdown before showing victory screen
+  private killcamTimer = 0; // countdown for killcam
+  private killerPos = new THREE.Vector3(); // position of killer
   private totalEnemies = 0; // total enemy count for HUD
 
   // DOM
@@ -395,8 +397,17 @@ class Game {
     this.gameOverEl.style.display = state === GameState.GAME_OVER ? 'flex' : 'none';
     this.victoryEl.style.display = state === GameState.VICTORY ? 'flex' : 'none';
 
+    const killcamEl = document.getElementById('killcam-overlay');
+    if (killcamEl) {
+      killcamEl.style.display = state === GameState.KILLCAM ? 'block' : 'none';
+    }
+
     const hudEl = document.getElementById('hud')!;
-    hudEl.style.display = state === GameState.PLAYING ? 'block' : 'none';
+    if (state === GameState.PLAYING || state === GameState.KILLCAM) {
+      hudEl.style.display = 'block';
+    } else {
+      hudEl.style.display = 'none';
+    }
   }
 
   private fireWeapon(): void {
@@ -420,7 +431,7 @@ class Game {
     this.animationId = requestAnimationFrame(this.gameLoop);
     const delta = Math.min(this.clock.getDelta(), 0.05); // cap delta
 
-    if (this.state !== GameState.PLAYING) {
+    if (this.state !== GameState.PLAYING && this.state !== GameState.KILLCAM) {
       this.renderer.render(this.scene, this.camera);
       return;
     }
@@ -470,6 +481,14 @@ class Game {
         } else {
           this.audio.stopHeartbeat();
         }
+
+        // Trigger killcam on death
+        if (this.player.health <= 0 && this.state === GameState.PLAYING) {
+          this.killerPos.copy(fromPos);
+          this.killcamTimer = 3.5; // 3.5s killcam duration
+          this.setState(GameState.KILLCAM);
+          this.audio.stopHeartbeat();
+        }
       }
     );
 
@@ -496,16 +515,24 @@ class Game {
       }
     }
 
-    // Check death
-    if (this.player.isDead) {
-      this.setState(GameState.GAME_OVER);
-      document.exitPointerLock();
-      this.audio.stopHeartbeat();
+    // Handle Killcam state
+    if (this.state === GameState.KILLCAM) {
+      this.killcamTimer -= delta;
+      
+      // Detach weapon immediately to hide it
+      this.weapon.getWeaponGroup().visible = false;
+      
+      this.player.lookAtSmooth(this.killerPos, delta);
 
-      // Show final stats
-      const statsEl = document.getElementById('final-stats');
-      if (statsEl) {
-        statsEl.textContent = `Kills: ${this.enemies.kills} | Headshots: ${this.enemies.headshots}`;
+      if (this.killcamTimer <= 0) {
+        this.setState(GameState.GAME_OVER);
+        document.exitPointerLock();
+        
+        // Show final stats
+        const statsEl = document.getElementById('final-stats');
+        if (statsEl) {
+          statsEl.textContent = `Kills: ${this.enemies.kills} | Headshots: ${this.enemies.headshots}`;
+        }
       }
     }
 

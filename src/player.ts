@@ -169,7 +169,7 @@ export class Player {
       this.keys[e.code] = false;
     });
     document.addEventListener('mousemove', (e) => {
-      if (document.pointerLockElement) {
+      if (document.pointerLockElement && !this.isDead) {
         this.onMouseMove(e.movementX, e.movementY);
       }
     });
@@ -186,7 +186,15 @@ export class Player {
   }
 
   update(delta: number, physics: PhysicsWorld, audio: AudioManager, isADS: boolean): void {
-    if (this.isDead) return;
+    if (this.isDead) {
+      // Fall down animation
+      if (this.currentEyeHeight > 0.15) {
+         this.currentEyeHeight -= delta * 4;
+         if (this.currentEyeHeight < 0.15) this.currentEyeHeight = 0.15;
+      }
+      this.yawObject.position.y = (this.position.y - PLAYER.STAND_HEIGHT) + this.currentEyeHeight + this.bobOffset;
+      return;
+    }
 
     this.updateStance(delta);
     this.updateMovement(delta, physics, isADS, audio);
@@ -434,5 +442,25 @@ export class Player {
 
   getPitch(): number {
     return this.pitchObject.rotation.x;
+  }
+
+  private dummyObj = new THREE.Object3D();
+
+  lookAtSmooth(target: THREE.Vector3, delta: number): void {
+    const eyePos = this.getEyePosition();
+    this.dummyObj.position.copy(eyePos);
+    this.dummyObj.lookAt(target.x, target.y + 1.2, target.z); // look slightly up at body/head
+    
+    const euler = new THREE.Euler().setFromQuaternion(this.dummyObj.quaternion, 'YXZ');
+    
+    // Smoothly lerp yaw with shortest path
+    let diffY = euler.y - this.yawObject.rotation.y;
+    while (diffY > Math.PI) diffY -= Math.PI * 2;
+    while (diffY < -Math.PI) diffY += Math.PI * 2;
+    this.yawObject.rotation.y += diffY * delta * 6;
+
+    // Smoothly lerp pitch
+    let diffX = euler.x - this.pitchObject.rotation.x;
+    this.pitchObject.rotation.x += diffX * delta * 6;
   }
 }

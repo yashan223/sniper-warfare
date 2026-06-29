@@ -151,6 +151,7 @@ export const RENDER = {
 export const GameState = {
   MENU: 'MENU',
   PLAYING: 'PLAYING',
+  KILLCAM: 'KILLCAM',
   PAUSED: 'PAUSED',
   GAME_OVER: 'GAME_OVER',
   VICTORY: 'VICTORY',

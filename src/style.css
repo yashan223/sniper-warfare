@@ -967,3 +967,66 @@ canvas {
   .game-title { font-size: 40px; }
   .controls-grid { grid-template-columns: 1fr; }
 }
+/* Auth Fields */
+.auth-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.menu-input {
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  padding: 10px 15px;
+  outline: none;
+  transition: all 0.2s;
+}
+.menu-input:focus {
+  border-color: #6a8a5c;
+  box-shadow: 0 0 10px rgba(106, 138, 92, 0.3);
+}
+.auth-error {
+  color: #ff4444;
+  font-size: 13px;
+  margin-bottom: 15px;
+  min-height: 15px;
+}
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+}
+.auth-buttons .menu-btn {
+  flex: 1;
+}
+.auth-divider {
+  text-align: center;
+  margin: 15px 0;
+  position: relative;
+}
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+}
+.auth-divider::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+}
+.auth-divider span {
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  background: #111;
+  padding: 0 10px;
+}

@@ -11,7 +11,7 @@ import type { LoadedAssets } from './map';
 import { Player } from './player';
 import { SniperRifle } from './weapon';
 import { MultiplayerManager } from './multiplayer';
-import { loginWithGoogle, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
 import type { User } from 'firebase/auth';
 import { HUD } from './hud';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -153,7 +153,80 @@ class Game {
     }
   }
 
+  
+  private setupAuthUI() {
+    const loginScreen = document.getElementById('login-screen')!;
+    const googleLoginBtn = document.getElementById('google-login-btn')!;
+    const emailLoginBtn = document.getElementById('email-login-btn')!;
+    const emailRegisterBtn = document.getElementById('email-register-btn')!;
+    const emailInput = document.getElementById('auth-email') as HTMLInputElement;
+    const passInput = document.getElementById('auth-password') as HTMLInputElement;
+    const authError = document.getElementById('auth-error')!;
+    const logoutBtn = document.getElementById('logout-btn')!;
+    const playBtn = document.getElementById('start-game-btn')!;
+    const loginSection = document.getElementById('login-section')!;
+    const playSection = document.getElementById('play-section')!;
+    const profile = document.getElementById('player-profile')!;
+
+    const displayError = (err: any) => {
+      console.error(err);
+      authError.textContent = err.message || 'Authentication failed';
+    };
+
+    googleLoginBtn.addEventListener('click', async () => {
+      try { authError.textContent = ''; await loginWithGoogle(); } catch (e) { displayError(e); }
+    });
+    
+    emailLoginBtn.addEventListener('click', async () => {
+      if (!emailInput.value || !passInput.value) return displayError({message: 'Enter email and password'});
+      try { authError.textContent = ''; await loginWithEmail(emailInput.value, passInput.value); } catch (e) { displayError(e); }
+    });
+
+    emailRegisterBtn.addEventListener('click', async () => {
+      if (!emailInput.value || !passInput.value) return displayError({message: 'Enter email and password'});
+      try { authError.textContent = ''; await registerWithEmail(emailInput.value, passInput.value); } catch (e) { displayError(e); }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await logout();
+    });
+
+    playBtn.addEventListener('click', () => {
+      loginScreen.style.display = 'none';
+      this.startGame();
+    });
+
+    listenToAuthStatus((user) => {
+      this.currentUser = user;
+      if (user) {
+        loginSection.style.display = 'none';
+        playSection.style.display = 'block';
+        profile.textContent = `Welcome, ${user.displayName || user.email || 'Soldier'}`;
+      } else {
+        loginSection.style.display = 'block';
+        playSection.style.display = 'none';
+        loginScreen.style.display = 'flex';
+      }
+    });
+
+    // Leaderboard logic
+    const lbContent = document.getElementById('leaderboard-content')!;
+    listenToLeaderboard('kills', (data) => {
+      lbContent.innerHTML = '';
+      data.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = `leaderboard-row ${p.uid === this.currentUser?.uid ? 'current-user' : ''}`;
+        row.innerHTML = `<div class="leaderboard-rank top-${idx+1}">${idx+1}</div>
+                         <div class="leaderboard-name">${p.displayName || 'Unknown Soldier'}</div>
+                         <div class="leaderboard-score">${p.kills || 0} K</div>`;
+        lbContent.appendChild(row);
+      });
+    });
+  }
+
   private init(): void {
+    this.setupAuthUI();
+
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);

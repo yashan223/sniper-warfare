@@ -4,7 +4,9 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { 
@@ -51,6 +53,16 @@ export const logout = async () => {
   } catch (error) {
     console.error("Error signing out", error);
   }
+};
+
+export const loginWithEmail = async (email: string, pass: string) => {
+  const result = await signInWithEmailAndPassword(auth, email, pass);
+  return result.user;
+};
+
+export const registerWithEmail = async (email: string, pass: string) => {
+  const result = await createUserWithEmailAndPassword(auth, email, pass);
+  return result.user;
 };
 
 export const listenToAuthStatus = (callback: (user: User | null) => void) => {

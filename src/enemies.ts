@@ -279,7 +279,7 @@ export class EnemyManager {
 
       switch (enemy.state) {
         case EnemyState.PATROL:
-          this.updatePatrol(enemy, delta);
+          this.updatePatrol(enemy, delta, physics);
           if (canSeePlayer) {
             enemy.state = EnemyState.ALERT;
             enemy.alertTimer = ENEMY.ALERT_DURATION;
@@ -341,9 +341,15 @@ export class EnemyManager {
           const newPosX = enemy.position.x + perpX * ENEMY.COMBAT_SPEED * delta;
           const newPosZ = enemy.position.z + perpZ * ENEMY.COMBAT_SPEED * delta;
 
+          const desiredPos = enemy.position.clone();
+          desiredPos.x = newPosX;
+          desiredPos.z = newPosZ;
+          
+          enemy.position.copy(physics.resolveMovement(enemy.position, desiredPos, 0.4, 1.5));
+
           // Clamp within map bounds
-          enemy.position.x = Math.max(-58, Math.min(58, newPosX));
-          enemy.position.z = Math.max(-58, Math.min(58, newPosZ));
+          enemy.position.x = Math.max(-58, Math.min(58, enemy.position.x));
+          enemy.position.z = Math.max(-58, Math.min(58, enemy.position.z));
 
           if (!canSeePlayer) {
             enemy.alertTimer = ENEMY.ALERT_DURATION;
@@ -358,7 +364,7 @@ export class EnemyManager {
     }
   }
 
-  private updatePatrol(enemy: EnemyData, delta: number): void {
+  private updatePatrol(enemy: EnemyData, delta: number, physics: PhysicsWorld): void {
     if (enemy.waypoints.length === 0) return;
 
     const target = enemy.waypoints[enemy.currentWaypoint];
@@ -370,7 +376,8 @@ export class EnemyManager {
       enemy.currentWaypoint = (enemy.currentWaypoint + 1) % enemy.waypoints.length;
     } else {
       this._patrolDir.normalize();
-      enemy.position.addScaledVector(this._patrolDir, ENEMY.PATROL_SPEED * delta);
+      const desiredPos = enemy.position.clone().addScaledVector(this._patrolDir, ENEMY.PATROL_SPEED * delta);
+      enemy.position.copy(physics.resolveMovement(enemy.position, desiredPos, 0.4, 1.5));
       enemy.rotation = Math.atan2(this._patrolDir.x, this._patrolDir.z) + Math.PI;
     }
   }

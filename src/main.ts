@@ -38,6 +38,7 @@ class Game {
   private sessionKills = 0;
   private sessionHeadshots = 0;
   private sessionStartTime = 0;
+  private lastNetworkUpdate = 0; // throttle Firebase writes
 
   // State
   private state: GameState = GameState.MENU;
@@ -232,6 +233,17 @@ class Game {
         playSection.style.display = 'none';
         loginScreen.style.display = 'flex';
       }
+    });
+
+    // Online player count from /players node
+    const onlineCountEl = document.getElementById('online-count');
+    import('firebase/database').then(({ onValue: fbOnValue, ref: fbRef }) => {
+      import('./firebase').then(({ db }) => {
+        fbOnValue(fbRef(db, 'players'), (snap: any) => {
+          const count = snap.exists() ? Object.keys(snap.val() || {}).length : 0;
+          if (onlineCountEl) onlineCountEl.textContent = String(count);
+        });
+      });
     });
 
     // Leaderboard
@@ -484,10 +496,41 @@ class Game {
     this.audio.init();
     this.audio.startAmbient();
     this.audio.resume();
-    this.spawnProtectionTimer = 3.0; // 3 seconds spawn protection
+    this.sessionStartTime = Date.now();
+    this.sessionKills = 0;
+    this.sessionHeadshots = 0;
+
+    // Initialize Firebase multiplayer
+    if (this.currentUser) {
+      this.multiplayer.init(
+        this.currentUser.uid,
+        this.currentUser.isAnonymous ? 'GUEST' : (this.currentUser.displayName || this.currentUser.email?.split('@')[0] || 'Soldier'),
+        this.player.position,
+        (dmg) => {
+          if (this.spawnProtectionTimer > 0) return;
+          const angle = this.player.takeDamage(dmg);
+          this.hud.flashDamage();
+          this.hud.showDamageDirection(angle);
+          this.audio.playDamage();
+          this.shakeIntensity = 0.018;
+          if (this.player.health < 25) {
+            this.audio.startHeartbeat();
+          } else {
+            this.audio.stopHeartbeat();
+          }
+          if (this.player.health <= 0 && this.state === GameState.PLAYING) {
+            this.killerPos.copy(this.player.position).add(new THREE.Vector3(0, 5, 10));
+            this.killcamTimer = 3.5;
+            this.setState(GameState.KILLCAM);
+            this.audio.stopHeartbeat();
+          }
+        }
+      );
+    }
+
+    this.spawnProtectionTimer = 3.0;
     this.pendingState = GameState.PLAYING;
     this.gameContainer.requestPointerLock();
-    // State will transition in pointerlockchange handler
     // Fallback: if pointer lock fails, still start (for testing)
     setTimeout(() => {
       if (this.state === GameState.MENU) {
@@ -509,43 +552,39 @@ class Game {
   }
 
   private restartGame(): void {
+    // Cleanup multiplayer first
+    this.multiplayer.cleanup();
+
     // Reset player
     this.player.respawn();
 
     // Reset weapon
     this.weapon = new SniperRifle(this.camera, this.loadedWeaponGLTF);
-    // Clear old weapon from camera and add new
     this.camera.children.forEach(child => {
       if (child.name === 'weapon') this.camera.remove(child);
     });
     this.camera.add(this.weapon.getWeaponGroup());
 
-//     // Reset enemies — remove old, spawn new
-//     this.enemies.getEnemies().forEach((e) => this.scene.remove(e.group));
-//     this.enemies = new EnemyManager();
-    // Rebuild map to get spawn points
+    // Rebuild map
     this.physics.clearColliders();
     this.scene.children
       .filter((c) => c.name === 'map' || c.name === 'dust')
       .forEach((c) => this.scene.remove(c));
     this.map = new GameMap();
-    const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
-//     this.enemies.spawnEnemies(spawnPoints, this.scene);
-//     this.totalEnemies = this.enemies.getEnemies().length;
+    this.map.build(this.scene, this.physics, this.loadedAssets);
+
     this.victoryTimer = -1;
+    this.sessionKills = 0;
+    this.sessionHeadshots = 0;
 
     // Reset HUD
     this.hud.updateAmmo(this.weapon.ammoInMag, this.weapon.ammoReserve);
     this.hud.updateHealth(this.player.health);
 
-    this.spawnProtectionTimer = 3.0;
-    this.pendingState = GameState.PLAYING;
-    this.gameContainer.requestPointerLock();
-    setTimeout(() => {
-      if (this.state !== GameState.PLAYING) {
-        this.setState(GameState.PLAYING);
-      }
-    }, 500);
+    // Show login screen to re-deploy (re-inits multiplayer via startGame)
+    const loginScreen = document.getElementById('login-screen')!;
+    loginScreen.style.display = 'flex';
+    this.setState(GameState.MENU);
   }
 
   private setState(state: GameState): void {
@@ -622,9 +661,12 @@ class Game {
       this.spawnProtectionTimer -= delta;
     }
 
-    
     this.multiplayer.update(delta);
-    if (this.currentUser) {
+
+    // Throttle network position updates to ~15/sec to avoid Firebase write limits
+    const now = Date.now();
+    if (this.currentUser && now - this.lastNetworkUpdate > 66) {
+      this.lastNetworkUpdate = now;
       this.multiplayer.updateLocalPlayer(this.player.position, this.player.getYaw(), this.player.stance, this.player.health, this.player.isDead);
     }
 

@@ -57,8 +57,8 @@ export const WEAPON = {
   LIMB_DAMAGE: 45,
 
   // Ammo
-  MAG_SIZE: 5,
-  RESERVE_AMMO: 20,
+  MAG_SIZE: 10,
+  RESERVE_AMMO: 60,
 
   // Timing (seconds)
   BOLT_ACTION_TIME: 1.2,

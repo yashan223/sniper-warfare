@@ -45,6 +45,10 @@ export class SniperRifle {
   private muzzleFlashLight: THREE.PointLight;
   private muzzleFlashTimer = 0;
 
+  // Gun position/rotation configs (set dynamically based on model type)
+  private hipfirePosition = new THREE.Vector3(0.2, -0.22, -0.35);
+  private adsPosition = new THREE.Vector3(0, -0.05, -0.35);
+
   // Tracers
   private tracers: { line: THREE.Line; timer: number }[] = [];
 
@@ -103,8 +107,12 @@ export class SniperRifle {
     
     // Scale and orient the wrapper
     wrapper.scale.set(scaleFactor, scaleFactor, scaleFactor);
-    wrapper.position.set(0.18, -0.15, -0.35); // offset to the bottom right
+    wrapper.position.set(0, 0, 0); // centered inside weaponGroup
     wrapper.rotation.y = Math.PI / 2; // Rotate 90 degrees to point forward along camera view (Z-axis)
+
+    // Parameterize offsets specifically for the GLTF model
+    this.hipfirePosition.set(0.18, -0.16, -0.3);
+    this.adsPosition.set(0, -0.045, -0.28); // center the scope vertically and horizontally
 
     gltfScene.traverse((child: any) => {
       if (child.isMesh) {
@@ -140,8 +148,8 @@ export class SniperRifle {
       this.actions['idle'].play();
     }
 
-    // Muzzle flash light
-    this.muzzleFlashLight.position.set(0.18, -0.12, -0.9);
+    // Muzzle flash light (centered)
+    this.muzzleFlashLight.position.set(0, -0.02, -0.9);
     this.weaponGroup.add(this.muzzleFlashLight);
 
     this.weaponGroup.name = 'weapon';
@@ -152,7 +160,7 @@ export class SniperRifle {
     const bodyGeo = new THREE.BoxGeometry(0.06, 0.08, 0.8);
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.3, metalness: 0.8 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.set(0.25, -0.22, -0.5);
+    body.position.set(0, -0.22, -0.5);
     this.weaponGroup.add(body);
 
     // Barrel
@@ -160,14 +168,14 @@ export class SniperRifle {
     const barrelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.2, metalness: 0.9 });
     const barrel = new THREE.Mesh(barrelGeo, barrelMat);
     barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0.25, -0.19, -0.95);
+    barrel.position.set(0, -0.19, -0.95);
     this.weaponGroup.add(barrel);
 
     // Stock
     const stockGeo = new THREE.BoxGeometry(0.05, 0.12, 0.35);
     const stockMat = new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.7, metalness: 0.1 });
     const stock = new THREE.Mesh(stockGeo, stockMat);
-    stock.position.set(0.25, -0.25, -0.05);
+    stock.position.set(0, -0.25, -0.05);
     this.weaponGroup.add(stock);
 
     // Scope
@@ -175,7 +183,7 @@ export class SniperRifle {
     const scopeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 });
     const scope = new THREE.Mesh(scopeGeo, scopeMat);
     scope.rotation.x = Math.PI / 2;
-    scope.position.set(0.25, -0.13, -0.5);
+    scope.position.set(0, -0.13, -0.5);
     this.weaponGroup.add(scope);
 
     // Scope lens (front)
@@ -188,27 +196,31 @@ export class SniperRifle {
       opacity: 0.5,
     });
     const lens = new THREE.Mesh(lensGeo, lensMat);
-    lens.position.set(0.25, -0.13, -0.625);
+    lens.position.set(0, -0.13, -0.625);
     this.weaponGroup.add(lens);
 
     // Magazine
     const magGeo = new THREE.BoxGeometry(0.04, 0.12, 0.08);
     const magMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.4, metalness: 0.6 });
     const mag = new THREE.Mesh(magGeo, magMat);
-    mag.position.set(0.25, -0.32, -0.42);
+    mag.position.set(0, -0.32, -0.42);
     this.weaponGroup.add(mag);
 
-    // Bolt handle
+    // Bolt handle (offset to the right of the gun)
     const boltGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.06, 6);
     const boltMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.2, metalness: 0.9 });
     const bolt = new THREE.Mesh(boltGeo, boltMat);
     bolt.rotation.z = Math.PI / 2;
-    bolt.position.set(0.29, -0.17, -0.38);
+    bolt.position.set(0.04, -0.17, -0.38);
     this.weaponGroup.add(bolt);
 
     // Muzzle flash light
-    this.muzzleFlashLight.position.set(0.25, -0.19, -1.45);
+    this.muzzleFlashLight.position.set(0, -0.19, -1.45);
     this.weaponGroup.add(this.muzzleFlashLight);
+
+    // Offsets specifically for the procedural model
+    this.hipfirePosition.set(0.22, -0.22, -0.45);
+    this.adsPosition.set(0, 0.13, -0.4); // Centers procedural scope vertically (scope is at -0.13 relative to body)
 
     this.weaponGroup.name = 'weapon';
   }
@@ -379,16 +391,32 @@ export class SniperRifle {
     this.camera.updateProjectionMatrix();
 
     // Scope overlay
-    hud.showScope(this.adsProgress > 0.85);
+    hud.showScope(this.adsProgress > 0.88);
 
-    // Weapon visibility (hide when fully ADS)
-    this.weaponGroup.visible = this.adsProgress < 0.85;
+    // Weapon visibility (hide when fully ADS to prevent clipping through reticle)
+    this.weaponGroup.visible = this.adsProgress < 0.88;
 
-    // Weapon position (move to center when ADS)
+    // Weapon position and rotation (smoothly center and align scope during ADS)
     if (!this.isADS) {
-      this.weaponGroup.position.lerp(new THREE.Vector3(0.3, -0.25, -0.4), delta * 8);
+      // Lerp position to hipfire position
+      this.weaponGroup.position.lerp(this.hipfirePosition, delta * 8);
+
+      // Lerp rotation to base hipfire angles (canted slightly in + roll) + mouse lag
+      const targetRotX = this.weaponLagY * 0.8;
+      const targetRotY = 0.06 - this.weaponLagX * 1.5; // slight inward rotation
+      const targetRotZ = -0.04; // slight tilt
+
+      this.weaponGroup.rotation.x += (targetRotX - this.weaponGroup.rotation.x) * Math.min(1, delta * 8);
+      this.weaponGroup.rotation.y += (targetRotY - this.weaponGroup.rotation.y) * Math.min(1, delta * 8);
+      this.weaponGroup.rotation.z += (targetRotZ - this.weaponGroup.rotation.z) * Math.min(1, delta * 8);
     } else {
-      this.weaponGroup.position.lerp(new THREE.Vector3(0, -0.15, -0.5), delta * 8);
+      // Lerp position to perfectly align the scope center
+      this.weaponGroup.position.lerp(this.adsPosition, delta * 12);
+
+      // Reset rotations to aim perfectly straight
+      this.weaponGroup.rotation.x += (0 - this.weaponGroup.rotation.x) * Math.min(1, delta * 12);
+      this.weaponGroup.rotation.y += (0 - this.weaponGroup.rotation.y) * Math.min(1, delta * 12);
+      this.weaponGroup.rotation.z += (0 - this.weaponGroup.rotation.z) * Math.min(1, delta * 12);
     }
 
     // Sprint weapon position (lower the weapon)
@@ -410,14 +438,12 @@ export class SniperRifle {
       this.camera.rotation.z = swayX;
       this.camera.rotation.x += swayY * 0.02; // very subtle vertical drift
     } else {
-      // Hip fire — subtle weapon lag based on mouse movement
+      // Hip fire — mouse movement lag
       this.weaponLagX += (this.lastMouseDX * 0.0003 - this.weaponLagX) * Math.min(1, delta * 8);
       this.weaponLagY += (this.lastMouseDY * 0.0003 - this.weaponLagY) * Math.min(1, delta * 8);
       this.lastMouseDX = 0;
       this.lastMouseDY = 0;
 
-      this.weaponGroup.rotation.y = -this.weaponLagX * 1.5;
-      this.weaponGroup.rotation.x = this.weaponLagY * 0.8;
       this.camera.rotation.z = 0;
       this.swayTime = 0;
     }

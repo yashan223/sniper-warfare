@@ -60,6 +60,7 @@ canvas {
   z-index: 100;
   background: var(--dark-glass);
   backdrop-filter: blur(8px);
+  cursor: default;
 }
 
 /* --- Main Menu --- */

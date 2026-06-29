@@ -11,7 +11,7 @@ import type { LoadedAssets } from './map';
 import { Player } from './player';
 import { SniperRifle } from './weapon';
 import { MultiplayerManager } from './multiplayer';
-import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAsGuest, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAsGuest, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard, measurePing, getServerRegion } from './firebase';
 import type { User } from 'firebase/auth';
 import { HUD } from './hud';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -271,6 +271,36 @@ class Game {
       loadLeaderboard('playTime');
     });
     loadLeaderboard('kills');
+
+    // --- Ping + Server Region ---
+    const region = getServerRegion();
+
+    // Landing page stats
+    const lpServerCode = document.getElementById('lp-server-code');
+    const lpServerLabel = document.getElementById('lp-server-label');
+    const lpPingEl = document.getElementById('lp-ping');
+    if (lpServerCode) lpServerCode.textContent = region.code;
+    if (lpServerLabel) lpServerLabel.textContent = region.label;
+
+    // In-game HUD
+    const netPingEl = document.getElementById('net-ping');
+    const netServerEl = document.getElementById('net-server');
+    if (netServerEl) netServerEl.textContent = region.code + ' · ' + region.label.split('(')[0].trim();
+
+    const updatePing = async () => {
+      const ms = await measurePing();
+      const label = `${ms} ms`;
+      const cls = ms < 80 ? 'ping-ok' : ms < 180 ? 'ping-mid' : 'ping-bad';
+
+      if (lpPingEl) lpPingEl.textContent = String(ms);
+      if (netPingEl) {
+        netPingEl.textContent = label;
+        netPingEl.className = cls;
+      }
+    };
+
+    updatePing();
+    setInterval(updatePing, 5000); // refresh every 5 seconds
   }
 
   private init(): void {

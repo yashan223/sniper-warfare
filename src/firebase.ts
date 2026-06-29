@@ -109,3 +109,27 @@ export const listenToLeaderboard = (sortBy: 'kills' | 'playTime', callback: (dat
     callback(data.reverse());
   });
 };
+
+// --- Ping + Server Region ---
+
+/** Measure round-trip latency to Firebase RTDB in milliseconds */
+export const measurePing = async (): Promise<number> => {
+  const pingRef = ref(db, '.info/serverTimeOffset');
+  const t0 = performance.now();
+  await get(pingRef);
+  return Math.round(performance.now() - t0);
+};
+
+/** Derive a human-readable server region from the database URL */
+export const getServerRegion = (): { code: string; label: string } => {
+  const url = import.meta.env.VITE_FIREBASE_DATABASE_URL as string || '';
+  if (url.includes('asia-southeast1')) return { code: 'SGP', label: 'Singapore (asia-southeast1)' };
+  if (url.includes('asia-southeast2')) return { code: 'CGK', label: 'Jakarta (asia-southeast2)' };
+  if (url.includes('asia-east1'))      return { code: 'TPE', label: 'Taiwan (asia-east1)' };
+  if (url.includes('asia-east2'))      return { code: 'HKG', label: 'Hong Kong (asia-east2)' };
+  if (url.includes('asia-northeast1')) return { code: 'NRT', label: 'Tokyo (asia-northeast1)' };
+  if (url.includes('us-central1'))     return { code: 'ORD', label: 'Iowa (us-central1)' };
+  if (url.includes('europe-west1'))    return { code: 'BRU', label: 'Belgium (europe-west1)' };
+  // Default RTDB (no region in URL = us-central)
+  return { code: 'US', label: 'United States (us-central)' };
+};

@@ -61,13 +61,13 @@
             </div>
             <div class="lp-stat-divider"></div>
             <div class="lp-stat">
-              <span class="lp-stat-num">∞</span>
-              <span class="lp-stat-label">MAPS</span>
+              <span class="lp-stat-num" id="lp-ping">--</span>
+              <span class="lp-stat-label">PING (ms)</span>
             </div>
             <div class="lp-stat-divider"></div>
             <div class="lp-stat">
-              <span class="lp-stat-num">FPS</span>
-              <span class="lp-stat-label">REAL-TIME</span>
+              <span class="lp-stat-num" id="lp-server-code" style="font-size:14px">--</span>
+              <span class="lp-stat-label" id="lp-server-label">SERVER</span>
             </div>
           </div>
 
@@ -280,6 +280,12 @@
 
       <!-- Enemy count -->
       <div id="enemy-count"></div>
+
+      <!-- Ping / Server indicator -->
+      <div id="net-status">
+        <div id="net-ping">-- ms</div>
+        <div id="net-server">SGP</div>
+      </div>
     </div>
 
     <!-- ======================== KILLCAM OVERLAY ======================== -->

@@ -10,7 +10,9 @@ import { GameMap } from './map';
 import type { LoadedAssets } from './map';
 import { Player } from './player';
 import { SniperRifle } from './weapon';
-import { EnemyManager } from './enemies';
+import { MultiplayerManager } from './multiplayer';
+import { loginWithGoogle, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
+import type { User } from 'firebase/auth';
 import { HUD } from './hud';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import './style.css';
@@ -31,7 +33,11 @@ class Game {
   private map!: GameMap;
   private player!: Player;
   private weapon!: SniperRifle;
-  private enemies!: EnemyManager;
+  private multiplayer!: MultiplayerManager;
+  private currentUser: User | null = null;
+  private sessionKills = 0;
+  private sessionHeadshots = 0;
+  private sessionStartTime = 0;
 
   // State
   private state: GameState = GameState.MENU;
@@ -42,7 +48,7 @@ class Game {
   private victoryTimer = -1; // countdown before showing victory screen
   private killcamTimer = 0; // countdown for killcam
   private killerPos = new THREE.Vector3(); // position of killer
-  private totalEnemies = 0; // total enemy count for HUD
+  // private totalEnemies = 0;
 
   // DOM
   private menuEl!: HTMLElement;
@@ -184,9 +190,9 @@ class Game {
     const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
 
     // Enemies
-    this.enemies = new EnemyManager();
-    this.enemies.spawnEnemies(spawnPoints, this.scene);
-    this.totalEnemies = this.enemies.getEnemies().length;
+    this.multiplayer = new MultiplayerManager(this.scene);
+//     this.enemies.spawnEnemies(spawnPoints, this.scene);
+//     this.totalEnemies = this.enemies.getEnemies().length;
 
     // HUD
     this.hud.init();
@@ -362,9 +368,9 @@ class Game {
     });
     this.camera.add(this.weapon.getWeaponGroup());
 
-    // Reset enemies — remove old, spawn new
-    this.enemies.getEnemies().forEach((e) => this.scene.remove(e.group));
-    this.enemies = new EnemyManager();
+//     // Reset enemies — remove old, spawn new
+//     this.enemies.getEnemies().forEach((e) => this.scene.remove(e.group));
+//     this.enemies = new EnemyManager();
     // Rebuild map to get spawn points
     this.physics.clearColliders();
     this.scene.children
@@ -372,8 +378,8 @@ class Game {
       .forEach((c) => this.scene.remove(c));
     this.map = new GameMap();
     const spawnPoints = this.map.build(this.scene, this.physics, this.loadedAssets);
-    this.enemies.spawnEnemies(spawnPoints, this.scene);
-    this.totalEnemies = this.enemies.getEnemies().length;
+//     this.enemies.spawnEnemies(spawnPoints, this.scene);
+//     this.totalEnemies = this.enemies.getEnemies().length;
     this.victoryTimer = -1;
 
     // Reset HUD
@@ -418,12 +424,19 @@ class Game {
       origin,
       direction,
       this.physics,
-      this.enemies.getEnemyMeshes(),
+      this.multiplayer.getNetworkMeshes(),
       [this.map.getObstacles()],
       this.audio,
       this.hud,
       this.scene,
-      (hitObj, hitPoint) => this.enemies.processHit(hitObj, hitPoint)
+      (hitObj) => {
+        const hitData = this.multiplayer.processHit(hitObj);
+        if (hitData?.killed) {
+           this.sessionKills++;
+           if (hitData.headshot) this.sessionHeadshots++;
+        }
+        return hitData;
+      }
     );
   }
 
@@ -457,40 +470,12 @@ class Game {
       this.spawnProtectionTimer -= delta;
     }
 
-    this.enemies.update(
-      delta,
-      this.player.getEyePosition(),
-      this.player.stance,
-      this.physics,
-      [this.map.getObstacles()],
-      this.audio,
-      (damage, fromPos) => {
-        // Ignore damage during spawn protection
-        if (this.spawnProtectionTimer > 0) return;
+    
+    this.multiplayer.update(delta);
+    if (this.currentUser) {
+      this.multiplayer.updateLocalPlayer(this.player.position, this.player.getYaw(), this.player.stance, this.player.health, this.player.isDead);
+    }
 
-        const angle = this.player.takeDamage(damage, fromPos);
-        this.hud.flashDamage();
-        this.hud.showDamageDirection(angle);
-        this.audio.playDamage();
-
-        // Camera shake on hit
-        this.shakeIntensity = 0.018;
-
-        if (this.player.health < 25) {
-          this.audio.startHeartbeat();
-        } else {
-          this.audio.stopHeartbeat();
-        }
-
-        // Trigger killcam on death
-        if (this.player.health <= 0 && this.state === GameState.PLAYING) {
-          this.killerPos.copy(fromPos);
-          this.killcamTimer = 3.5; // 3.5s killcam duration
-          this.setState(GameState.KILLCAM);
-          this.audio.stopHeartbeat();
-        }
-      }
-    );
 
     this.map.update(delta);
     this.hud.update(delta);
@@ -500,9 +485,9 @@ class Game {
     this.hud.updateStamina(this.player.stamina, PLAYER.SPRINT_DURATION);
     this.hud.updateStance(this.player.stance);
     this.hud.updateCrosshair(this.player.isMoving, this.weapon.isADS);
-    this.hud.updateScore(this.enemies.kills, this.enemies.headshots);
-    this.hud.updateMinimap(this.player.position, this.player.getYaw(), this.enemies.getEnemies());
-    this.hud.updateEnemyCount(this.enemies.getAliveCount(), this.totalEnemies);
+    this.hud.updateScore(this.sessionKills, this.sessionHeadshots);
+    this.hud.updateMinimap(this.player.position, this.player.getYaw(), []); // Optional: show players on minimap
+    // this.hud.updateEnemyCount(this.enemies.getAliveCount(), this.totalEnemies);
 
     // Camera shake
     if (this.shakeIntensity > 0) {
@@ -531,26 +516,18 @@ class Game {
         // Show final stats
         const statsEl = document.getElementById('final-stats');
         if (statsEl) {
-          statsEl.textContent = `Kills: ${this.enemies.kills} | Headshots: ${this.enemies.headshots}`;
-        }
-      }
-    }
-
-    // Check all enemies dead — show VICTORY after 3 second delay
-    if (this.enemies.getAliveCount() === 0 && this.state === GameState.PLAYING) {
-      if (this.victoryTimer < 0) {
-        this.victoryTimer = 3.0; // start 3s countdown
-      } else {
-        this.victoryTimer -= delta;
-        if (this.victoryTimer <= 0) {
-          this.victoryTimer = -1;
-          this.setState(GameState.VICTORY);
-          document.exitPointerLock();
-          this.audio.stopHeartbeat();
-
-          const vStatsEl = document.getElementById('victory-stats');
-          if (vStatsEl) {
-            vStatsEl.textContent = `Kills: ${this.enemies.kills} | Headshots: ${this.enemies.headshots}`;
+          statsEl.textContent = `Kills: ${this.sessionKills} | Headshots: ${this.sessionHeadshots}`;
+          
+          // Send to Firebase
+          if (this.currentUser) {
+            const playTimeMs = Date.now() - this.sessionStartTime;
+            updatePlayerStats(this.currentUser.uid, this.currentUser.displayName || '', {
+              kills: this.sessionKills,
+              deaths: 1,
+              playTime: Math.floor(playTimeMs / 1000)
+            });
+            this.sessionKills = 0;
+            this.sessionHeadshots = 0;
           }
         }
       }
@@ -563,3 +540,4 @@ class Game {
 
 // Start the game
 new Game();
+

@@ -235,7 +235,7 @@ export class SniperRifle {
     audio: AudioManager,
     hud: HUD,
     scene: THREE.Scene,
-    onHitEnemy: (enemyPart: THREE.Object3D, point: THREE.Vector3) => { killed: boolean; headshot: boolean; name: string } | null,
+    onHitEnemy: (enemyPart: THREE.Object3D, point: THREE.Vector3) => { killed: boolean; headshot: boolean; uid: string } | null,
   ): void {
     if (!this.canFire || this.isReloading || this.ammoInMag <= 0) {
       if (this.ammoInMag <= 0) {
@@ -280,7 +280,7 @@ export class SniperRifle {
         if (result.killed) {
           audio.playKillConfirm();
           hud.showHitMarker(true);
-          hud.addKill(result.name, result.headshot);
+          hud.addKill(result.uid, result.headshot);
         } else {
           audio.playHitMarker();
           hud.showHitMarker(false);

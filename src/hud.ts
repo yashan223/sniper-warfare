@@ -290,7 +290,7 @@ export class HUD {
     // Apply rotation and translation so that the minimap rotates with the player
     ctx.save();
     ctx.translate(centerX, centerY);
-    ctx.rotate(-playerYaw);
+    ctx.rotate(playerYaw);
     ctx.translate(-playerPosition.x * scale, -playerPosition.z * scale);
 
     // 1. Draw grid / map boundaries

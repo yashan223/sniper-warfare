@@ -1137,14 +1137,19 @@ canvas {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 40px;
+  grid-template-columns: 1fr 360px;
+  gap: 48px;
   height: 100vh;
-  padding: 40px 50px;
-  max-width: 1400px;
+  padding: 32px 60px;
+  max-width: 1440px;
   margin: 0 auto;
-  overflow-y: auto;
+  overflow: hidden;
 }
+
+/* scrollbar suppressed globally on lp */
+.lp-lb-content::-webkit-scrollbar { width: 4px; }
+.lp-lb-content::-webkit-scrollbar-track { background: transparent; }
+.lp-lb-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); }
 
 /* --- Left Panel --- */
 .lp-left {
@@ -1615,3 +1620,21 @@ canvas {
   color: #A78BFA;
   text-align: right;
 }
+
+/* Fix: hide all scrollbars on the landing page wrapper */
+#login-screen,
+#login-screen .lp-container,
+#login-screen .lp-left,
+#login-screen .lp-right {
+  overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#login-screen .lp-lb-content {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,58,237,0.35) transparent;
+}
+#login-screen .lp-lb-content::-webkit-scrollbar { width: 3px; }
+#login-screen .lp-lb-content::-webkit-scrollbar-track { background: transparent; }
+#login-screen .lp-lb-content::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.35); border-radius: 2px; }

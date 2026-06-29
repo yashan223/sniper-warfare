@@ -194,19 +194,10 @@ export class Player {
     this.updateHealth(delta);
     this.updateStamina(delta);
 
-    // Update yaw object position
+    // Update yaw object position — include jump height (position.y offset above ground)
     this.yawObject.position.x = this.position.x;
     this.yawObject.position.z = this.position.z;
-    this.yawObject.position.y = this.currentEyeHeight + this.bobOffset;
-
-    // Update player model scaling and offset to align to ground based on eye height ratio
-    if (this.model) {
-      const ratio = this.currentEyeHeight / PLAYER.STAND_HEIGHT;
-      this.model.scale.y = this.modelBaseScale * ratio;
-      this.model.scale.x = this.modelBaseScale * (1 + (1 - ratio) * 0.3);
-      this.model.scale.z = this.modelBaseScale * (1 + (1 - ratio) * 0.3);
-      this.model.position.y = -this.currentEyeHeight - (this.modelBoxMinY * this.modelBaseScale * ratio);
-    }
+    this.yawObject.position.y = (this.position.y - PLAYER.STAND_HEIGHT) + this.currentEyeHeight + this.bobOffset;
   }
 
   private updateStance(delta: number): void {

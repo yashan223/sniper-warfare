@@ -7,73 +7,174 @@
   <title>SNIPER WARFARE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
+  <!-- ======================== MOBILE BLOCK ======================== -->
+  <div id="mobile-block">
+    <div class="mb-content">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.5" width="60" height="60"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18" stroke-linecap="round" stroke-width="3"/></svg>
+      <div class="mb-title">DESKTOP ONLY</div>
+      <div class="mb-text">SNIPER WARFARE requires a keyboard and mouse.<br>Please open on a desktop or laptop.</div>
+    </div>
+  </div>
   <div id="game-container">
     <!-- ======================== LOGIN / LANDING PAGE ======================== -->
     <div id="login-screen" class="overlay-screen">
-      <div class="menu-bg-pattern"></div>
-      <div class="menu-content login-layout">
-        <div class="login-left">
-          <div class="title-group">
-            <div class="title-sub">TACTICAL</div>
-            <h1 class="game-title">SNIPER<span class="title-accent">WARFARE</span></h1>
-            <div class="title-line"></div>
-            <div class="title-tagline">ONLINE MULTIPLAYER</div>
+      <!-- Animated background -->
+      <div class="lp-bg">
+        <div class="lp-grid"></div>
+        <div class="lp-scanlines"></div>
+        <div class="lp-vignette"></div>
+        <!-- Floating particles -->
+        <div class="lp-particle" style="--x:10%;--y:20%;--d:4s;--s:4px"></div>
+        <div class="lp-particle" style="--x:85%;--y:70%;--d:6s;--s:3px"></div>
+        <div class="lp-particle" style="--x:50%;--y:10%;--d:5s;--s:5px"></div>
+        <div class="lp-particle" style="--x:25%;--y:85%;--d:7s;--s:3px"></div>
+        <div class="lp-particle" style="--x:70%;--y:40%;--d:3s;--s:6px"></div>
+        <div class="lp-particle" style="--x:92%;--y:15%;--d:8s;--s:4px"></div>
+      </div>
+
+      <div class="lp-container">
+        <!-- LEFT: Branding + Auth -->
+        <div class="lp-left">
+          <!-- Badge -->
+          <div class="lp-badge">
+            <span class="lp-badge-dot"></span>
+            ONLINE MULTIPLAYER
           </div>
-          
-          <div id="login-section">
-            <div class="auth-inputs">
-              <input type="email" id="auth-email" class="menu-input" placeholder="EMAIL ADDRESS" autocomplete="off" />
-              <input type="password" id="auth-password" class="menu-input" placeholder="PASSWORD" />
+
+          <!-- Title -->
+          <div class="lp-title-group">
+            <div class="lp-title-sub">TACTICAL</div>
+            <h1 class="lp-title">
+              SNIPER<span class="lp-title-accent">WARFARE</span>
+            </h1>
+            <div class="lp-title-tagline">ELIMINATE. DOMINATE. SURVIVE.</div>
+          </div>
+
+          <!-- Stats bar -->
+          <div class="lp-stats-bar">
+            <div class="lp-stat">
+              <span class="lp-stat-num" id="online-count">--</span>
+              <span class="lp-stat-label">ONLINE</span>
             </div>
-            <div id="auth-error" class="auth-error"></div>
-            
-            <div class="auth-buttons">
-              <button id="email-login-btn" class="menu-btn auth-btn">LOGIN</button>
-              <button id="email-register-btn" class="menu-btn secondary auth-btn">REGISTER</button>
+            <div class="lp-stat-divider"></div>
+            <div class="lp-stat">
+              <span class="lp-stat-num">∞</span>
+              <span class="lp-stat-label">MAPS</span>
+            </div>
+            <div class="lp-stat-divider"></div>
+            <div class="lp-stat">
+              <span class="lp-stat-num">FPS</span>
+              <span class="lp-stat-label">REAL-TIME</span>
+            </div>
+          </div>
+
+          <!-- Auth Panel -->
+          <div class="lp-auth-panel" id="login-section">
+            <div class="lp-auth-header">
+              <button class="lp-tab-auth active" id="tab-signin">SIGN IN</button>
+              <button class="lp-tab-auth" id="tab-signup">REGISTER</button>
             </div>
 
-            <div class="auth-divider">
-              <span>OR</span>
+            <div class="lp-inputs">
+              <div class="lp-input-wrap">
+                <svg class="lp-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <input type="email" id="auth-email" class="lp-input" placeholder="EMAIL ADDRESS" autocomplete="off" />
+              </div>
+              <div class="lp-input-wrap">
+                <svg class="lp-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input type="password" id="auth-password" class="lp-input" placeholder="PASSWORD" />
+              </div>
             </div>
 
-            <button id="google-login-btn" class="menu-btn auth-btn google-btn">
-              <svg viewBox="0 0 24 24" width="20" height="20" style="margin-right: 10px; fill: white;"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              LOGIN WITH GOOGLE
+            <div id="auth-error" class="lp-auth-error"></div>
+
+            <div class="lp-auth-actions">
+              <button id="email-login-btn" class="lp-btn lp-btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                DEPLOY
+              </button>
+              <button id="email-register-btn" class="lp-btn lp-btn-secondary" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                CREATE ACCOUNT
+              </button>
+            </div>
+
+            <div class="lp-divider"><span>OR CONTINUE WITH</span></div>
+
+            <div class="lp-social-btns">
+              <button id="google-login-btn" class="lp-btn lp-btn-google" title="Sign in with Google">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                GOOGLE
+              </button>
+              <button id="guest-login-btn" class="lp-btn lp-btn-ghost" title="Play as Guest">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                PLAY AS GUEST
+              </button>
+            </div>
+          </div>
+
+          <!-- Play section (shown after login) -->
+          <div id="play-section" class="lp-play-section" style="display:none">
+            <div class="lp-profile">
+              <div class="lp-avatar">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+              </div>
+              <div>
+                <div id="player-profile" class="lp-profile-name">SOLDIER</div>
+                <div class="lp-profile-rank">PRIVATE FIRST CLASS</div>
+              </div>
+            </div>
+            <button id="start-game-btn" class="lp-btn lp-btn-deploy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              DEPLOY NOW
+            </button>
+            <button id="logout-btn" class="lp-btn lp-btn-ghost lp-logout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              LOGOUT
             </button>
           </div>
-          
-          <div id="play-section" style="display: none;">
-            <div id="player-profile" class="player-profile">Welcome, Soldier</div>
-            <button id="start-game-btn" class="menu-btn pulse">DEPLOY NOW</button>
-            <button id="logout-btn" class="menu-btn secondary" style="margin-top: 15px; font-size: 10px; padding: 8px 20px;">LOGOUT</button>
-          </div>
-          
-          <div class="controls-info" style="margin-top: 40px; transform: scale(0.85);">
-            <div class="controls-grid">
-              <div class="control-item"><kbd>W A S D</kbd><span>Move</span></div>
-              <div class="control-item"><kbd>SHIFT</kbd><span>Sprint</span></div>
-              <div class="control-item"><kbd>C</kbd><span>Crouch</span></div>
-              <div class="control-item"><kbd>Z</kbd><span>Prone</span></div>
-              <div class="control-item"><kbd>SPACE</kbd><span>Jump</span></div>
-              <div class="control-item"><kbd>RMB</kbd><span>Scope</span></div>
-              <div class="control-item"><kbd>LMB</kbd><span>Fire</span></div>
-              <div class="control-item"><kbd>R</kbd><span>Reload</span></div>
+
+          <!-- Controls info -->
+          <div class="lp-controls">
+            <div class="lp-controls-title">CONTROLS</div>
+            <div class="lp-controls-grid">
+              <div class="lp-key-item"><kbd>WASD</kbd><span>Move</span></div>
+              <div class="lp-key-item"><kbd>SHIFT</kbd><span>Sprint</span></div>
+              <div class="lp-key-item"><kbd>C</kbd><span>Crouch</span></div>
+              <div class="lp-key-item"><kbd>Z</kbd><span>Prone</span></div>
+              <div class="lp-key-item"><kbd>SPACE</kbd><span>Jump</span></div>
+              <div class="lp-key-item"><kbd>RMB</kbd><span>Scope</span></div>
+              <div class="lp-key-item"><kbd>LMB</kbd><span>Fire</span></div>
+              <div class="lp-key-item"><kbd>R</kbd><span>Reload</span></div>
             </div>
           </div>
         </div>
-        
-        <div class="login-right">
-          <div class="leaderboard-panel">
-            <div class="leaderboard-header">GLOBAL LEADERBOARD</div>
-            <div class="leaderboard-tabs">
-              <button class="tab-btn active" id="tab-kills">TOP KILLS</button>
-              <button class="tab-btn" id="tab-time">PLAY TIME</button>
+
+        <!-- RIGHT: Leaderboard -->
+        <div class="lp-right">
+          <div class="lp-leaderboard">
+            <div class="lp-lb-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              GLOBAL LEADERBOARD
             </div>
-            <div id="leaderboard-content" class="leaderboard-content">
-              <div class="leaderboard-loading">CONNECTING TO SECURE NETWORK...</div>
+            <div class="lp-lb-tabs">
+              <button class="lp-lb-tab active" id="tab-kills">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L8 8H3l4 3.5L5 17l7-4.5L19 17l-2-5.5L21 8h-5z"/></svg>
+                TOP KILLS
+              </button>
+              <button class="lp-lb-tab" id="tab-time">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                PLAY TIME
+              </button>
+            </div>
+            <div id="leaderboard-content" class="lp-lb-content">
+              <div class="lp-lb-loading">
+                <div class="lp-lb-spinner"></div>
+                CONNECTING TO SECURE NETWORK...
+              </div>
             </div>
           </div>
         </div>

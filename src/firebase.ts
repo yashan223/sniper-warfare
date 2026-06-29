@@ -6,7 +6,8 @@ import {
   signOut,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signInAnonymously
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { 
@@ -62,6 +63,11 @@ export const loginWithEmail = async (email: string, pass: string) => {
 
 export const registerWithEmail = async (email: string, pass: string) => {
   const result = await createUserWithEmailAndPassword(auth, email, pass);
+  return result.user;
+};
+
+export const loginAsGuest = async () => {
+  const result = await signInAnonymously(auth);
   return result.user;
 };
 

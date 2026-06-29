@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    SNIPER WARFARE — Full Game Stylesheet
    Military / Tactical aesthetic with CoD-inspired HUD
    ============================================================ */
@@ -11,8 +11,12 @@
 }
 
 :root {
-  --font-primary: 'Rajdhani', sans-serif;
-  --font-display: 'Orbitron', sans-serif;
+  --font-primary: 'Chakra Petch', sans-serif;
+  --font-display: 'Russo One', sans-serif;
+  --purple: #7C3AED;
+  --purple-light: #A78BFA;
+  --neon-red: #F43F5E;
+  --lp-bg: #0F0F23;
 
   --hud-green: #00f0ff; /* tactical cyan */
   --hud-amber: #00a8ff; /* electric blue */
@@ -1029,4 +1033,585 @@ canvas {
   font-size: 12px;
   background: #111;
   padding: 0 10px;
+}
+
+/* ============================================================
+   MOBILE BLOCK
+   ============================================================ */
+#mobile-block {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0F0F23;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+@media (max-width: 900px), (pointer: coarse) {
+  #mobile-block { display: flex; }
+  #game-container { display: none !important; }
+}
+.mb-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+}
+.mb-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: 28px;
+  color: #A78BFA;
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(124,58,237,0.8);
+}
+.mb-text {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.7;
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   LANDING PAGE � Retro-Futurism Redesign
+   ============================================================ */
+
+/* --- Background --- */
+.lp-bg {
+  position: absolute;
+  inset: 0;
+  background: #0F0F23;
+  overflow: hidden;
+}
+.lp-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(124,58,237,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridShift 20s linear infinite;
+}
+@keyframes gridShift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(60px); }
+}
+.lp-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.15) 2px,
+    rgba(0,0,0,0.15) 4px
+  );
+  pointer-events: none;
+}
+.lp-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.75) 100%);
+  pointer-events: none;
+}
+.lp-particle {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  background: #7C3AED;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #7C3AED;
+  animation: particleFloat var(--d) ease-in-out infinite alternate;
+}
+@keyframes particleFloat {
+  0% { transform: translateY(0) scale(1); opacity: 0.7; }
+  100% { transform: translateY(-30px) scale(1.5); opacity: 0.2; }
+}
+
+/* --- Layout --- */
+.lp-container {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 40px;
+  height: 100vh;
+  padding: 40px 50px;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow-y: auto;
+}
+
+/* --- Left Panel --- */
+.lp-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+}
+
+/* Badge */
+.lp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.35);
+  color: #A78BFA;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  padding: 6px 14px;
+  width: fit-content;
+}
+.lp-badge-dot {
+  width: 7px;
+  height: 7px;
+  background: #A78BFA;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #A78BFA;
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Title */
+.lp-title-group { line-height: 1; }
+.lp-title-sub {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  letter-spacing: 8px;
+  color: #7C3AED;
+  margin-bottom: 8px;
+}
+.lp-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: clamp(56px, 8vw, 96px);
+  line-height: 0.9;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(124,58,237,0.4);
+  display: block;
+}
+.lp-title-accent {
+  display: block;
+  color: transparent;
+  -webkit-text-stroke: 2px #7C3AED;
+  text-shadow: none;
+  filter: drop-shadow(0 0 15px rgba(124,58,237,0.6));
+}
+.lp-title-tagline {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,0.35);
+  margin-top: 16px;
+}
+
+/* Stats Bar */
+.lp-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(124,58,237,0.2);
+  padding: 14px 24px;
+  width: fit-content;
+}
+.lp-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.lp-stat-num {
+  font-family: 'Russo One', sans-serif;
+  font-size: 20px;
+  color: #A78BFA;
+  text-shadow: 0 0 12px rgba(167,139,250,0.6);
+}
+.lp-stat-label {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.3);
+}
+.lp-stat-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(124,58,237,0.3);
+}
+
+/* Auth Panel */
+.lp-auth-panel {
+  background: rgba(15,15,35,0.8);
+  border: 1px solid rgba(124,58,237,0.25);
+  backdrop-filter: blur(20px);
+  padding: 28px;
+  max-width: 440px;
+}
+.lp-auth-header {
+  display: flex;
+  gap: 0;
+  margin-bottom: 22px;
+  border-bottom: 1px solid rgba(124,58,237,0.2);
+}
+.lp-tab-auth {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.35);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.lp-tab-auth.active {
+  color: #A78BFA;
+  border-bottom-color: #7C3AED;
+}
+.lp-tab-auth:hover:not(.active) { color: rgba(255,255,255,0.6); }
+
+/* Inputs */
+.lp-inputs { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+.lp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.lp-input-icon {
+  position: absolute;
+  left: 14px;
+  color: rgba(124,58,237,0.6);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+.lp-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(124,58,237,0.25);
+  color: #fff;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 12px 14px 12px 44px;
+  outline: none;
+  transition: all 0.2s;
+}
+.lp-input::placeholder { color: rgba(255,255,255,0.2); letter-spacing: 2px; font-size: 11px; }
+.lp-input:focus {
+  border-color: #7C3AED;
+  background: rgba(124,58,237,0.08);
+  box-shadow: 0 0 0 1px rgba(124,58,237,0.3), inset 0 0 20px rgba(124,58,237,0.05);
+}
+
+/* Error */
+.lp-auth-error {
+  color: #F43F5E;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  min-height: 18px;
+  margin-bottom: 4px;
+}
+
+/* Buttons */
+.lp-auth-actions { display: flex; gap: 10px; margin-bottom: 18px; }
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 12px 20px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.lp-btn-primary {
+  flex: 1;
+  background: linear-gradient(135deg, #7C3AED, #5B21B6);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(124,58,237,0.4);
+}
+.lp-btn-primary:hover {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  box-shadow: 0 0 30px rgba(124,58,237,0.7);
+  transform: translateY(-1px);
+}
+.lp-btn-secondary {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(124,58,237,0.5);
+  color: #A78BFA;
+}
+.lp-btn-secondary:hover {
+  background: rgba(124,58,237,0.15);
+  border-color: #7C3AED;
+}
+
+/* Divider */
+.lp-divider {
+  position: relative;
+  text-align: center;
+  margin: 16px 0;
+}
+.lp-divider::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 100%; height: 1px;
+  background: rgba(124,58,237,0.2);
+}
+.lp-divider span {
+  position: relative;
+  background: rgba(15,15,35,0.9);
+  padding: 0 12px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.25);
+}
+
+/* Social Buttons */
+.lp-social-btns { display: flex; gap: 10px; }
+.lp-btn-google {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+}
+.lp-btn-google:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+.lp-btn-ghost {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(244,63,94,0.35);
+  color: #F43F5E;
+}
+.lp-btn-ghost:hover {
+  background: rgba(244,63,94,0.1);
+  border-color: #F43F5E;
+  box-shadow: 0 0 15px rgba(244,63,94,0.25);
+}
+
+/* Play section */
+.lp-play-section { display: flex; flex-direction: column; gap: 16px; max-width: 440px; }
+.lp-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.25);
+  padding: 14px 18px;
+}
+.lp-avatar {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, #7C3AED, #5B21B6);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(124,58,237,0.4);
+}
+.lp-profile-name {
+  font-family: 'Russo One', sans-serif;
+  font-size: 16px;
+  color: #fff;
+  letter-spacing: 2px;
+}
+.lp-profile-rank {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  color: #A78BFA;
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+.lp-btn-deploy {
+  background: linear-gradient(135deg, #F43F5E, #be123c);
+  color: #fff;
+  padding: 16px 24px;
+  font-size: 16px;
+  letter-spacing: 4px;
+  box-shadow: 0 0 30px rgba(244,63,94,0.4);
+  animation: deployPulse 2s ease-in-out infinite;
+}
+@keyframes deployPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(244,63,94,0.4); }
+  50% { box-shadow: 0 0 40px rgba(244,63,94,0.7); }
+}
+.lp-btn-deploy:hover {
+  background: linear-gradient(135deg, #fb7185, #F43F5E);
+  transform: translateY(-2px);
+}
+.lp-logout {
+  align-self: flex-start;
+  font-size: 10px;
+  padding: 8px 16px;
+  color: rgba(255,255,255,0.35);
+  border-color: rgba(255,255,255,0.1);
+}
+.lp-logout:hover { color: #F43F5E; border-color: rgba(244,63,94,0.35); }
+
+/* Controls */
+.lp-controls { max-width: 440px; }
+.lp-controls-title {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 10px;
+}
+.lp-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.lp-key-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.lp-key-item kbd {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(124,58,237,0.3);
+  color: #A78BFA;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  padding: 4px 8px;
+  letter-spacing: 1px;
+  min-width: 40px;
+  text-align: center;
+}
+.lp-key-item span {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 1px;
+}
+
+/* --- Right Panel --- */
+.lp-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 0;
+}
+.lp-leaderboard {
+  background: rgba(15,15,35,0.85);
+  border: 1px solid rgba(124,58,237,0.25);
+  backdrop-filter: blur(20px);
+  height: 100%;
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
+}
+.lp-lb-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 22px;
+  font-family: 'Russo One', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #A78BFA;
+  border-bottom: 1px solid rgba(124,58,237,0.2);
+  background: rgba(124,58,237,0.06);
+}
+.lp-lb-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(124,58,237,0.15);
+}
+.lp-lb-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+.lp-lb-tab.active { color: #A78BFA; border-bottom-color: #7C3AED; background: rgba(124,58,237,0.07); }
+.lp-lb-tab:hover:not(.active) { color: rgba(255,255,255,0.55); }
+.lp-lb-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,58,237,0.3) transparent;
+}
+.lp-lb-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  padding: 40px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+}
+.lp-lb-spinner {
+  width: 32px; height: 32px;
+  border: 2px solid rgba(124,58,237,0.2);
+  border-top-color: #7C3AED;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Leaderboard rows */
+.lp-lb-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  padding: 12px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+  cursor: default;
+}
+.lp-lb-row:hover { background: rgba(124,58,237,0.06); }
+.lp-lb-row.lp-lb-me { background: rgba(244,63,94,0.08); border-left: 2px solid #F43F5E; }
+.lp-lb-rank {
+  font-family: 'Russo One', sans-serif;
+  font-size: 18px;
+  color: rgba(255,255,255,0.15);
+}
+.lp-lb-rank.gold { color: #F59E0B; text-shadow: 0 0 10px rgba(245,158,11,0.5); }
+.lp-lb-rank.silver { color: #94A3B8; text-shadow: 0 0 10px rgba(148,163,184,0.4); }
+.lp-lb-rank.bronze { color: #B45309; text-shadow: 0 0 10px rgba(180,83,9,0.4); }
+.lp-lb-name {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  letter-spacing: 1px;
+}
+.lp-lb-score {
+  font-family: 'Russo One', sans-serif;
+  font-size: 14px;
+  color: #A78BFA;
+  text-align: right;
 }

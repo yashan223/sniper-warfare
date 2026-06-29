@@ -11,7 +11,7 @@ import type { LoadedAssets } from './map';
 import { Player } from './player';
 import { SniperRifle } from './weapon';
 import { MultiplayerManager } from './multiplayer';
-import { loginWithGoogle, loginWithEmail, registerWithEmail, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAsGuest, logout, listenToAuthStatus, updatePlayerStats, listenToLeaderboard } from './firebase';
 import type { User } from 'firebase/auth';
 import { HUD } from './hud';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -157,8 +157,11 @@ class Game {
   private setupAuthUI() {
     const loginScreen = document.getElementById('login-screen')!;
     const googleLoginBtn = document.getElementById('google-login-btn')!;
+    const guestLoginBtn = document.getElementById('guest-login-btn')!;
     const emailLoginBtn = document.getElementById('email-login-btn')!;
     const emailRegisterBtn = document.getElementById('email-register-btn')!;
+    const tabSignin = document.getElementById('tab-signin')!;
+    const tabSignup = document.getElementById('tab-signup')!;
     const emailInput = document.getElementById('auth-email') as HTMLInputElement;
     const passInput = document.getElementById('auth-password') as HTMLInputElement;
     const authError = document.getElementById('auth-error')!;
@@ -168,15 +171,36 @@ class Game {
     const playSection = document.getElementById('play-section')!;
     const profile = document.getElementById('player-profile')!;
 
+    // Tab switching
+    tabSignin?.addEventListener('click', () => {
+      tabSignin.classList.add('active'); tabSignup.classList.remove('active');
+      emailLoginBtn.style.display = 'flex'; emailRegisterBtn.style.display = 'none';
+    });
+    tabSignup?.addEventListener('click', () => {
+      tabSignup.classList.add('active'); tabSignin.classList.remove('active');
+      emailRegisterBtn.style.display = 'flex'; emailLoginBtn.style.display = 'none';
+    });
+
     const displayError = (err: any) => {
       console.error(err);
-      authError.textContent = err.message || 'Authentication failed';
+      const msg = (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password')
+        ? 'Invalid email or password'
+        : err.code === 'auth/email-already-in-use'
+        ? 'Email already in use'
+        : err.code === 'auth/weak-password'
+        ? 'Password must be at least 6 characters'
+        : err.message || 'Authentication failed';
+      authError.textContent = msg;
     };
 
     googleLoginBtn.addEventListener('click', async () => {
       try { authError.textContent = ''; await loginWithGoogle(); } catch (e) { displayError(e); }
     });
     
+    guestLoginBtn.addEventListener('click', async () => {
+      try { authError.textContent = ''; await loginAsGuest(); } catch (e) { displayError(e); }
+    });
+
     emailLoginBtn.addEventListener('click', async () => {
       if (!emailInput.value || !passInput.value) return displayError({message: 'Enter email and password'});
       try { authError.textContent = ''; await loginWithEmail(emailInput.value, passInput.value); } catch (e) { displayError(e); }
@@ -200,8 +224,9 @@ class Game {
       this.currentUser = user;
       if (user) {
         loginSection.style.display = 'none';
-        playSection.style.display = 'block';
-        profile.textContent = `Welcome, ${user.displayName || user.email || 'Soldier'}`;
+        playSection.style.display = 'flex';
+        const name = user.isAnonymous ? 'GUEST' : (user.displayName?.toUpperCase() || user.email?.split('@')[0].toUpperCase() || 'SOLDIER');
+        profile.textContent = name;
       } else {
         loginSection.style.display = 'block';
         playSection.style.display = 'none';
@@ -209,19 +234,43 @@ class Game {
       }
     });
 
-    // Leaderboard logic
+    // Leaderboard
     const lbContent = document.getElementById('leaderboard-content')!;
-    listenToLeaderboard('kills', (data) => {
-      lbContent.innerHTML = '';
-      data.forEach((p, idx) => {
-        const row = document.createElement('div');
-        row.className = `leaderboard-row ${p.uid === this.currentUser?.uid ? 'current-user' : ''}`;
-        row.innerHTML = `<div class="leaderboard-rank top-${idx+1}">${idx+1}</div>
-                         <div class="leaderboard-name">${p.displayName || 'Unknown Soldier'}</div>
-                         <div class="leaderboard-score">${p.kills || 0} K</div>`;
-        lbContent.appendChild(row);
+    const tabKills = document.getElementById('tab-kills')!;
+    const tabTime = document.getElementById('tab-time')!;
+    let unsubLb: (() => void) | null = null;
+
+    const loadLeaderboard = (sortBy: 'kills' | 'playTime') => {
+      if (unsubLb) unsubLb();
+      lbContent.innerHTML = '<div class="lp-lb-loading"><div class="lp-lb-spinner"></div>LOADING...</div>';
+      unsubLb = listenToLeaderboard(sortBy, (data) => {
+        lbContent.innerHTML = '';
+        data.forEach((p, idx) => {
+          const row = document.createElement('div');
+          row.className = `lp-lb-row ${p.uid === this.currentUser?.uid ? 'lp-lb-me' : ''}`;
+          const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
+          const score = sortBy === 'kills'
+            ? `${p.kills || 0} K`
+            : `${Math.floor((p.playTime || 0) / 60)}m`;
+          row.innerHTML = `
+            <div class="lp-lb-rank ${rankClass}">${idx + 1}</div>
+            <div class="lp-lb-name">${p.displayName || 'UNKNOWN'}</div>
+            <div class="lp-lb-score">${score}</div>`;
+          lbContent.appendChild(row);
+        });
+        if (data.length === 0) lbContent.innerHTML = '<div class="lp-lb-loading">NO PLAYERS YET</div>';
       });
+    };
+
+    tabKills.addEventListener('click', () => {
+      tabKills.classList.add('active'); tabTime.classList.remove('active');
+      loadLeaderboard('kills');
     });
+    tabTime.addEventListener('click', () => {
+      tabTime.classList.add('active'); tabKills.classList.remove('active');
+      loadLeaderboard('playTime');
+    });
+    loadLeaderboard('kills');
   }
 
   private init(): void {

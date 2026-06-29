@@ -276,7 +276,7 @@ class Game {
     this.hud.updateStance(this.player.stance);
 
     // DOM refs
-    this.menuEl = document.getElementById('main-menu')!;
+    this.menuEl = document.getElementById('login-screen')!;
     this.pauseEl = document.getElementById('pause-menu')!;
     this.gameOverEl = document.getElementById('game-over')!;
     this.victoryEl = document.getElementById('victory-screen')!;
